@@ -19,7 +19,7 @@ describe('DocusaurusPlugin.extractContent', () => {
     expect(result.markdown).toContain('pnpm add my-lib');
     expect(result.markdown).toContain('```js');
     expect(result.markdown).toContain("import { MyLib } from 'my-lib';");
-    expect(result.markdown).toContain('const  app =  initApp();');
+    expect(result.markdown).toContain('const app = initApp();');
     expect(result.markdown).toContain('app.start();');
     expect(result.markdown).toContain('## Supported Browsers');
     expect(result.markdown).toContain('| Browser | Version | Notes |');

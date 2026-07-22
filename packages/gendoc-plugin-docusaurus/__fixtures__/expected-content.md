@@ -17,7 +17,7 @@ Then import it:
 
 ```js
 import { MyLib } from 'my-lib';
-const  app =  initApp();
+const app = initApp();
 app.start();
 ```
 

@@ -5,7 +5,6 @@ import type { FrameworkPlugin, PageContext, DetectionResult, NavNode, ExtractedP
 const turndown = new TurndownService({
   headingStyle: 'atx',
   codeBlockStyle: 'fenced',
-  preformattedCode: true,
   emDelimiter: '*',
 });
 
@@ -119,6 +118,13 @@ export const docusaurusPlugin: FrameworkPlugin = {
       $content.find('h1').first().text().trim() ||
       $('title').text().replace(/\s*\|.*$/, '').trim() ||
       '';
+
+    // Strip syntax highlighting spans from code blocks, preserving language class
+    $content.find('pre code').each((_, el) => {
+      const $el = $(el);
+      const text = $el.text();
+      $el.empty().text(text);
+    });
 
     // Convert HTML to Markdown
     const html = $content.html() || '';
