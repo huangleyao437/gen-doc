@@ -1,4 +1,5 @@
 import TurndownService from 'turndown';
+import { gfm } from 'turndown-plugin-gfm';
 import type { FrameworkPlugin, PageContext, DetectionResult, NavNode, ExtractedPage } from 'gendoc-core';
 
 const turndown = new TurndownService({
@@ -6,6 +7,8 @@ const turndown = new TurndownService({
   codeBlockStyle: 'fenced',
   emDelimiter: '*',
 });
+
+turndown.use(gfm);
 
 export const docusaurusPlugin: FrameworkPlugin = {
   name: 'docusaurus',

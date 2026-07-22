@@ -19,5 +19,10 @@ describe('DocusaurusPlugin.extractContent', () => {
     expect(result.markdown).toContain('pnpm add my-lib');
     expect(result.markdown).toContain('```js');
     expect(result.markdown).toContain("import { myLib } from 'my-lib';");
+    expect(result.markdown).toContain('## Supported Browsers');
+    expect(result.markdown).toContain('| Browser | Version | Notes |');
+    expect(result.markdown).toContain('| Chrome | 90+ | Recommended |');
+    expect(result.markdown).toContain('| Firefox | 88+ | Full support |');
+    expect(result.markdown).toContain('| Safari | 14+ | Partial support |');
   });
 });
