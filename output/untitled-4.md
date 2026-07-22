@@ -70,13 +70,30 @@ Doris 在排序键的前 36 字节上构建[前缀索引](/zh-CN/docs/4.x/gettin
 **前置要求：** 无特殊要求
 
 ```
-CREATE TABLE app_logs(    log_time      DATETIME    NOT NULL,    log_level     VARCHAR(10),    service_name  VARCHAR(50),    trace_id      VARCHAR(64),    message       STRING,    INDEX idx_message (message) USING INVERTED PROPERTIES("parser" = "unicode"))AUTO PARTITION BY RANGE(date_trunc(`log_time`, 'day'))()DISTRIBUTED BY RANDOM BUCKETS 10;
+
+CREATE TABLE app_logs
+(
+    log_time      DATETIME    NOT NULL,
+    log_level     VARCHAR(10),
+    service_name  VARCHAR(50),
+    trace_id      VARCHAR(64),
+    message       STRING,
+    INDEX idx_message (message) USING INVERTED PROPERTIES("parser" = "unicode")
+)
+AUTO PARTITION BY RANGE(date_trunc(`log_time`, 'day'))
+()
+DISTRIBUTED BY RANDOM BUCKETS 10;
 ```
 
 **验证步骤：**
 
 ```
--- 1. 验证分区是否自动创建SHOW PARTITIONS FROM app_logs;-- 2. 验证数据分布是否均匀SHOW TABLETS FROM app_logs;
+
+-- 1. 验证分区是否自动创建
+SHOW PARTITIONS FROM app_logs;
+
+-- 2. 验证数据分布是否均匀
+SHOW TABLETS FROM app_logs;
 ```
 
 #### 实时看板与 Upsert（CDC）[​](#实时看板与-upsertcdc "实时看板与 Upsert（CDC）的直接链接")
@@ -86,13 +103,28 @@ CREATE TABLE app_logs(    log_time      DATETIME    NOT NULL,    log_level     V
 **前置要求：** 需要明确主键列
 
 ```
-CREATE TABLE user_profiles(    user_id       BIGINT      NOT NULL,    username      VARCHAR(50),    email         VARCHAR(100),    status        TINYINT,    updated_at    DATETIME)UNIQUE KEY(user_id)DISTRIBUTED BY HASH(user_id) BUCKETS 10;
+
+CREATE TABLE user_profiles
+(
+    user_id       BIGINT      NOT NULL,
+    username      VARCHAR(50),
+    email         VARCHAR(100),
+    status        TINYINT,
+    updated_at    DATETIME
+)
+UNIQUE KEY(user_id)
+DISTRIBUTED BY HASH(user_id) BUCKETS 10;
 ```
 
 **验证步骤：**
 
 ```
--- 1. 验证主键唯一性（同一 user_id 只有一条最新数据）SELECT user_id, count(*) as cnt FROM user_profiles GROUP BY user_id HAVING cnt > 1;-- 2. 验证数据分布SHOW TABLETS FROM user_profiles;
+
+-- 1. 验证主键唯一性（同一 user_id 只有一条最新数据）
+SELECT user_id, count(*) as cnt FROM user_profiles GROUP BY user_id HAVING cnt > 1;
+
+-- 2. 验证数据分布
+SHOW TABLETS FROM user_profiles;
 ```
 
 #### 指标聚合[​](#指标聚合 "指标聚合的直接链接")
@@ -102,13 +134,29 @@ CREATE TABLE user_profiles(    user_id       BIGINT      NOT NULL,    username  
 **前置要求：** 明确聚合维度列和指标列
 
 ```
-CREATE TABLE site_metrics(    dt            DATE        NOT NULL,    site_id       INT         NOT NULL,    pv            BIGINT      SUM DEFAULT '0',    uv            BIGINT      MAX DEFAULT '0')AGGREGATE KEY(dt, site_id)AUTO PARTITION BY RANGE(date_trunc(`dt`, 'day'))()DISTRIBUTED BY HASH(site_id) BUCKETS 10;
+
+CREATE TABLE site_metrics
+(
+    dt            DATE        NOT NULL,
+    site_id       INT         NOT NULL,
+    pv            BIGINT      SUM DEFAULT '0',
+    uv            BIGINT      MAX DEFAULT '0'
+)
+AGGREGATE KEY(dt, site_id)
+AUTO PARTITION BY RANGE(date_trunc(`dt`, 'day'))
+()
+DISTRIBUTED BY HASH(site_id) BUCKETS 10;
 ```
 
 **验证步骤：**
 
 ```
--- 1. 验证聚合是否生效（相同 dt+site_id 的指标是否合并）SELECT dt, site_id, pv, uv FROM site_metrics ORDER BY dt DESC LIMIT 10;-- 2. 验证分区裁剪是否生效EXPLAIN SELECT * FROM site_metrics WHERE dt = '2024-01-01';
+
+-- 1. 验证聚合是否生效（相同 dt+site_id 的指标是否合并）
+SELECT dt, site_id, pv, uv FROM site_metrics ORDER BY dt DESC LIMIT 10;
+
+-- 2. 验证分区裁剪是否生效
+EXPLAIN SELECT * FROM site_metrics WHERE dt = '2024-01-01';
 ```
 
 ## 数据导入[​](#数据导�入 "数据导入的直接链接")
@@ -123,7 +171,12 @@ CREATE TABLE site_metrics(    dt            DATE        NOT NULL,    site_id    
 **快速验证：**
 
 ```
--- 查看导入任务状态SHOW LOAD WHERE label = 'your_label';-- 检查版本堆积（Version Count 过高说明导入过于频繁）SHOW TABLETS FROM your_table;
+
+-- 查看导入任务状态
+SHOW LOAD WHERE label = 'your_label';
+
+-- 检查版本堆积（Version Count 过高说明导入过于频繁）
+SHOW TABLETS FROM your_table;
 ```
 
 详见[导入最佳实践](/zh-CN/docs/4.x/getting-started/data-operate/import/load-best-practices/load-best-practices/)。
@@ -141,7 +194,10 @@ CREATE TABLE site_metrics(    dt            DATE        NOT NULL,    site_id    
 **诊断命令：**
 
 ```
--- 检查 tablet 大小分布（用于判断数据倾斜）SHOW TABLETS FROM your_table\G-- 查看 Tablet 数量和大小，判断是否需要调整分桶数
+
+-- 检查 tablet 大小分布（用于判断数据倾斜）
+SHOW TABLETS FROM your_table\G
+-- 查看 Tablet 数量和大小，判断是否需要调整分桶数
 ```
 
 参见[分桶](#%E5%88%86%E6%A1%B6)了解分桶数选择。
@@ -153,7 +209,9 @@ CREATE TABLE site_metrics(    dt            DATE        NOT NULL,    site_id    
 **验证排序键是否生效：**
 
 ```
-EXPLAIN SELECT * FROM your_table WHERE filter_column = 'xxx';-- 查看是否走 Sort Key 索引
+
+EXPLAIN SELECT * FROM your_table WHERE filter_column = 'xxx';
+-- 查看是否走 Sort Key 索引
 ```
 
 ### 诊断工具[​](#诊断工具 "诊断工具的直接链接")
@@ -163,7 +221,14 @@ EXPLAIN SELECT * FROM your_table WHERE filter_column = 'xxx';-- 查看是否走 
 **快速上手：**
 
 ```
--- 1. 执行查询并获取 query_idSET enable_profile = true;SELECT ...;-- 2. 查看 Query ProfileSHOW PROFILELIST;SHOW PROFILE WHERE query_id = 'xxx';
+
+-- 1. 执行查询并获取 query_id
+SET enable_profile = true;
+SELECT ...;
+
+-- 2. 查看 Query Profile
+SHOW PROFILELIST;
+SHOW PROFILE WHERE query_id = 'xxx';
 ```
 
 ## 数据湖查询[​](#数据湖查询 "数据湖查询的直接链接")
@@ -175,7 +240,9 @@ EXPLAIN SELECT * FROM your_table WHERE filter_column = 'xxx';-- 查看是否走 
 湖上表往往有海量数据，查询时务必在 WHERE 条件中包含分区列，使 Doris 只扫描必要的分区。可通过 `EXPLAIN <SQL>` 查看 `partition` 字段确认裁剪是否生效：
 
 ```
-0:VPAIMON_SCAN_NODE(88)    partition=203/0          -- 203 个分区被裁剪，实际扫描 0 个
+
+0:VPAIMON_SCAN_NODE(88)
+    partition=203/0          -- 203 个分区被裁剪，实际扫描 0 个
 ```
 
 如果分区数远大于预期，检查查询的 WHERE 条件是否正确匹配分区列。
@@ -217,7 +284,9 @@ POC 中建议先执行一次查询完成缓存加载，再以第二次查询的�
 **解决：** 检查 DDL 是否包含 `DISTRIBUTED BY HASH(xxx) BUCKETS n`，确保 BUCKETS 后跟正整数。
 
 ```
--- 正确示例DISTRIBUTED BY HASH(user_id) BUCKETS 10;
+
+-- 正确示例
+DISTRIBUTED BY HASH(user_id) BUCKETS 10;
 ```
 
 ### 查询慢，怀疑未走索引[​](#查询慢怀疑未走索引 "查询慢，怀疑未走索引的直接链接")
@@ -229,7 +298,12 @@ POC 中建议先执行一次查询完成缓存加载，再以第二次查询的�
 3.  查看 Query Profile 定位瓶颈
 
 ```
--- 检查是否走索引（看 output_id 是否有 Sort Key 列）EXPLAIN SELECT * FROM table_name WHERE key_col = 'xxx';-- 检查 tablet 大小（判断数据倾斜）SHOW TABLETS FROM table_name;
+
+-- 检查是否走索引（看 output_id 是否有 Sort Key 列）
+EXPLAIN SELECT * FROM table_name WHERE key_col = 'xxx';
+
+-- 检查 tablet 大小（判断数据倾斜）
+SHOW TABLETS FROM table_name;
 ```
 
 ### 湖上查询 OOM[​](#湖上查询-oom "湖上查询 OOM的直接链接")
@@ -242,6 +316,7 @@ POC 中建议先执行一次查询完成缓存加载，再以第二次查询的�
 2.  Doris 侧限制 Split 数量：
 
 ```
+
 SET max_file_split_num = 50000;
 ```
 
@@ -255,6 +330,7 @@ SET max_file_split_num = 50000;
 2.  启用 Group Commit：
 
 ```
+
 SET group_commit_mode = 'async_mode';
 ```
 

@@ -24,6 +24,7 @@
 [下载脚本](/files/start-doris.sh)，运行以下命令赋予执行权限：
 
 ```
+
 chmod 755 start-doris.sh
 ```
 
@@ -32,12 +33,14 @@ chmod 755 start-doris.sh
 运行脚本启动集群（默认使用 4.0.1 版本）：
 
 ```
+
 bash start-doris.sh
 ```
 
 如需指定版本，使用 `-v` 参数：
 
 ```
+
 bash start-doris.sh -v 4.1.0
 ```
 
@@ -46,11 +49,17 @@ bash start-doris.sh -v 4.1.0
 使用 MySQL 客户端连接集群，检查 FE 和 BE 状态：
 
 ```
--- 目的：验证 FE 节点是否正常加入集群-- 期望：Join 和 Alive 列均为 truemysql -uroot -P9030 -h127.0.0.1 -e 'SELECT `host`, `join`, `alive` FROM frontends()'
+
+-- 目的：验证 FE 节点是否正常加入集群
+-- 期望：Join 和 Alive 列均为 true
+mysql -uroot -P9030 -h127.0.0.1 -e 'SELECT `host`, `join`, `alive` FROM frontends()'
 ```
 
 ```
--- 目的：验证 BE 节点是否正常心跳-- 期望：Alive 列为 1mysql -uroot -P9030 -h127.0.0.1 -e 'SELECT `host`, `alive` FROM backends()'
+
+-- 目的：验证 BE 节点是否正常心跳
+-- 期望：Alive 列为 1
+mysql -uroot -P9030 -h127.0.0.1 -e 'SELECT `host`, `alive` FROM backends()'
 ```
 
 **输出解析：** `Alive=true`（FE）或 `Alive=1`（BE）表示节点运行正常。
@@ -74,13 +83,20 @@ bash start-doris.sh -v 4.1.0
 **修改最大文件句柄数**（避免打开文件过多导致报错）：
 
 ```
-vi /etc/security/limits.conf* soft nofile 1000000* hard nofile 1000000
+
+vi /etc/security/limits.conf
+* soft nofile 1000000
+* hard nofile 1000000
 ```
 
 **修改虚拟内存区域**：
 
 ```
-cat >> /etc/sysctl.conf << EOFvm.max_map_count = 2000000EOFsysctl -p
+
+cat >> /etc/sysctl.conf << EOF
+vm.max_map_count = 2000000
+EOF
+sysctl -p
 ```
 
 ### 第 3 步（3/4）：部署 FE[​](#第-3-步34部署-fe "第 3 步（3/4）：部署 FE的直接链接")
@@ -88,19 +104,28 @@ cat >> /etc/sysctl.conf << EOFvm.max_map_count = 2000000EOFsysctl -p
 1.  **配置 FE**：编辑 `apache-doris/fe/conf/fe.conf`
     
     ```
-    # 指定 Java 环境JAVA_HOME=/home/doris/jdk# 指定 FE 监听 IP（根据实际网段修改）priority_networks=127.0.0.1/32
+    
+    # 指定 Java 环境
+    JAVA_HOME=/home/doris/jdk
+    
+    # 指定 FE 监听 IP（根据实际网段修改）
+    priority_networks=127.0.0.1/32
     ```
     
 2.  **启动 FE**：
     
     ```
+    
     apache-doris/fe/bin/start_fe.sh --daemon
     ```
     
 3.  **验证 FE 状态**：
     
     ```
-    -- 目的：确认 FE 已启动并加入集群-- 期望：Join=true, Alive=true, IsMaster=truemysql -uroot -P9030 -h127.0.0.1 -e "show frontends;"
+    
+    -- 目的：确认 FE 已启动并加入集群
+    -- 期望：Join=true, Alive=true, IsMaster=true
+    mysql -uroot -P9030 -h127.0.0.1 -e "show frontends;"
     ```
     
 
@@ -109,25 +134,33 @@ cat >> /etc/sysctl.conf << EOFvm.max_map_count = 2000000EOFsysctl -p
 1.  **配置 BE**：编辑 `apache-doris/be/conf/be.conf`
     
     ```
-    # 指定 BE 监听 IP（需与 FE 的 priority_networks 在同一网段）priority_networks=127.0.0.1/32
+    
+    # 指定 BE 监听 IP（需与 FE 的 priority_networks 在同一网段）
+    priority_networks=127.0.0.1/32
     ```
     
 2.  **启动 BE**：
     
     ```
+    
     apache-doris/be/bin/start_be.sh --daemon
     ```
     
 3.  **注册 BE 到集群**：
     
     ```
-    -- 目的：将 BE 节点加入集群管理ALTER SYSTEM ADD BACKEND "127.0.0.1:9050";
+    
+    -- 目的：将 BE 节点加入集群管理
+    ALTER SYSTEM ADD BACKEND "127.0.0.1:9050";
     ```
     
 4.  **验证 BE 状态**：
     
     ```
-    -- 目的：确认 BE 已注册且心跳正常-- 期望：Alive=truemysql -uroot -P9030 -h127.0.0.1 -e "show backends;"
+    
+    -- 目的：确认 BE 已注册且心跳正常
+    -- 期望：Alive=true
+    mysql -uroot -P9030 -h127.0.0.1 -e "show backends;"
     ```
     
 
@@ -140,31 +173,63 @@ cat >> /etc/sysctl.conf << EOFvm.max_map_count = 2000000EOFsysctl -p
 ### 连接集群[​](#连接集群 "连接集群的直接链接")
 
 ```
+
 mysql -uroot -P9030 -h127.0.0.1
 ```
 
 ### 创建数据库和表[​](#创建数据库和表 "创建数据库和表的直接链接")
 
 ```
--- 目的：创建演示用数据库和表create database demo;use demo;create table mytable(    k1 TINYINT,    k2 DECIMAL(10, 2) DEFAULT "10.05",    k3 CHAR(10) COMMENT "string column",    k4 INT NOT NULL DEFAULT "1" COMMENT "int column")COMMENT "my first table"DISTRIBUTED BY HASH(k1) BUCKETS 1PROPERTIES ("replication_num" = "1");
+
+-- 目的：创建演示用数据库和表
+create database demo;
+use demo;
+
+create table mytable
+(
+    k1 TINYINT,
+    k2 DECIMAL(10, 2) DEFAULT "10.05",
+    k3 CHAR(10) COMMENT "string column",
+    k4 INT NOT NULL DEFAULT "1" COMMENT "int column"
+)
+COMMENT "my first table"
+DISTRIBUTED BY HASH(k1) BUCKETS 1
+PROPERTIES ("replication_num" = "1");
 ```
 
 ### 导入测试数据[​](#导入测试数据 "导入测试数据的直接链接")
 
 ```
--- 目的：插入几条测试数据insert into mytable values(1, 0.14, 'a1', 20),(2, 1.04, 'b2', 21),(3, 3.14, 'c3', 22),(4, 4.35, 'd4', 23);
+
+-- 目的：插入几条测试数据
+insert into mytable values
+(1, 0.14, 'a1', 20),
+(2, 1.04, 'b2', 21),
+(3, 3.14, 'c3', 22),
+(4, 4.35, 'd4', 23);
 ```
 
 ### 执行查询[​](#执行查询 "执行查询的直接链接")
 
 ```
--- 目的：验证数据导入成功-- 期望：看到 4 行数据select * from demo.mytable;
+
+-- 目的：验证数据导入成功
+-- 期望：看到 4 行数据
+select * from demo.mytable;
 ```
 
 **输出示例：**
 
 ```
-+------+------+------+------+| k1   | k2   | k3   | k4   |+------+------+------+------+|    1 | 0.14 | a1   |   20 ||    2 | 1.04 | b2   |   21 ||    3 | 3.14 | c3   |   22 ||    4 | 4.35 | d4   |   23 |+------+------+------+------+
+
++------+------+------+------+
+| k1   | k2   | k3   | k4   |
++------+------+------+------+
+|    1 | 0.14 | a1   |   20 |
+|    2 | 1.04 | b2   |   21 |
+|    3 | 3.14 | c3   |   22 |
+|    4 | 4.35 | d4   |   23 |
++------+------+------+------+
 ```
 
 * * *
@@ -184,6 +249,7 @@ mysql -uroot -P9030 -h127.0.0.1
 创建符号链接：
 
 ```
+
 sudo ln -s /Applications/Docker.app/Contents/Resources/bin/docker /usr/local/bin/docker
 ```
 

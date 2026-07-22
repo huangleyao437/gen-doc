@@ -101,7 +101,13 @@ Apache Doris 查询引擎基于 MPP（大规模并行处理）架构，支持节
 Apache Doris 在单条 SQL 中融合**结构化分析 + 全文检索 + 向量搜索**能力，一套系统同时支持向量相似度搜索、关键词过滤和聚合分析，无需数据迁移和异构系统集成。结合 VARIANT 类型原生支持动态 JSON 结构和 Light Schema Change 秒级变更字段能力，为 RAG 应用、语义搜索、企业知识库等 AI 场景提供高效的数据支撑。
 
 ```
-SELECT * FROM productsWHERE match(query_vector, 'summer breathable shoes')  -- Vector similarity search  AND body MATCH 'breathable lightweight'           -- Full-text keyword search  AND category_id = 1                                -- Structured filteringGROUP BY brandORDER BY sales_count DESC;
+
+SELECT * FROM products
+WHERE match(query_vector, 'summer breathable shoes')  -- Vector similarity search
+  AND body MATCH 'breathable lightweight'           -- Full-text keyword search
+  AND category_id = 1                                -- Structured filtering
+GROUP BY brand
+ORDER BY sales_count DESC;
 ```
 
 *   **一体化架构**：无需数据迁移，无需异构系统

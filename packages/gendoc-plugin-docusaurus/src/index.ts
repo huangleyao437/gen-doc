@@ -120,15 +120,28 @@ export const docusaurusPlugin: FrameworkPlugin = {
       '';
 
     // Strip syntax highlighting spans from code blocks, preserving language class.
+    // Some Docusaurus themes put language-* on <pre>, others on <code>.
+    // turndown only reads it from <code>, so copy it over if missing.
     // Inject newlines before line-level spans (Prism.js token-line, Shiki line)
     // so that cheerio .text() produces proper multi-line output.
-    $content.find('pre code').each((_, el) => {
-      const $el = $(el);
-      $el.find('span.token-line, span.line').each((_, span) => {
+    $content.find('pre').each((_, pre) => {
+      const $pre = $(pre);
+      const $code = $pre.find('code').first();
+      if ($code.length === 0) return;
+
+      // Copy language-* class from <pre> to <code> if <code> doesn't have one
+      const preClass = $pre.attr('class') || '';
+      const codeClass = $code.attr('class') || '';
+      const langMatch = preClass.match(/language-(\S+)/);
+      if (langMatch && !codeClass.includes('language-')) {
+        $code.attr('class', (codeClass + ' ' + langMatch[0]).trim());
+      }
+
+      $code.find('span.token-line, span.line').each((_, span) => {
         $(span).before('\n');
       });
-      const text = $el.text();
-      $el.empty().text(text);
+      const text = $code.text();
+      $code.empty().text(text);
     });
 
     // Convert HTML to Markdown
