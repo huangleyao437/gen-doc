@@ -119,9 +119,14 @@ export const docusaurusPlugin: FrameworkPlugin = {
       $('title').text().replace(/\s*\|.*$/, '').trim() ||
       '';
 
-    // Strip syntax highlighting spans from code blocks, preserving language class
+    // Strip syntax highlighting spans from code blocks, preserving language class.
+    // Inject newlines before line-level spans (Prism.js token-line, Shiki line)
+    // so that cheerio .text() produces proper multi-line output.
     $content.find('pre code').each((_, el) => {
       const $el = $(el);
+      $el.find('span.token-line, span.line').each((_, span) => {
+        $(span).before('\n');
+      });
       const text = $el.text();
       $el.empty().text(text);
     });
