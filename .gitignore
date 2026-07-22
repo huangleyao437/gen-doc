@@ -1,0 +1,5 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.gendoc-state.json
+gendoc-errors.log
