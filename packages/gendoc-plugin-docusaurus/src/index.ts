@@ -5,6 +5,7 @@ import type { FrameworkPlugin, PageContext, DetectionResult, NavNode, ExtractedP
 const turndown = new TurndownService({
   headingStyle: 'atx',
   codeBlockStyle: 'fenced',
+  preformattedCode: true,
   emDelimiter: '*',
 });
 

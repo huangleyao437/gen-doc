@@ -1,153 +1,223 @@
-*   [English](/docs/4.x/getting-started/what-is-apache-doris/)
-*   [中文](/zh-CN/docs/4.x/getting-started/what-is-apache-doris/)
-*   [日本語](/ja/docs/4.x/getting-started/what-is-apache-doris/)
+*   [English](/docs/4.x/getting-started/quick-start/)
+*   [中文](/zh-CN/docs/4.x/getting-started/quick-start/)
+*   [日本語](/ja/docs/4.x/getting-started/quick-start/)
 
-# Apache Doris 概述
+# 5 分钟快速入门
 
-Apache Doris 是一款基于 MPP 架构的高性能、实时分析型数据库，以**高效、简单、统一**著称：在亚秒级时间内返回海量数据查询结果，一套系统同时支持高并发点查询和高吞吐复杂分析。
+**完成本教程后，你将能够**
 
-![Apache Doris 产品概览图](https://cdnd.selectdb.com/zh-CN/assets/images/01-apache-doris-overview-6ee3988e67260945e696e55c542fc214.jpg)
+*   使用 Docker 在 5 分钟内启动一个完整的 Doris 集群
+*   使用 MySQL 客户端连接集群并验证节点状态
+*   创建数据库、表结构，并执行首次数据查询
 
-## 核心亮点[​](#核心亮点 "核心亮点的直接链接")
+选择你的部署方式
 
-能力
+*   **想快速体验？** → 使用 Docker 部署，5 分钟搞定
+*   **想完整了解生产部署？** → 本地完整部署，包含 FE/BE 分离配置
 
-数据
+## 使用 Docker 快速部署[​](#使用-docker-快速部署 "使用 Docker 快速部署的直接链接")
 
-查询延迟
+自最新版本起，可以使用 Docker 进行快速部署。
 
-**< 1 秒**（亚秒级响应）
+### 第 1 步（1/3）：下载启动脚本[​](#第-1-步13下载启动脚本 "第 1 步（1/3）：下载启动脚本的直接链接")
 
-写入延迟
-
-**秒级**（实时数据入库）
-
-并发能力
-
-**10,000+ QPS**
-
-存储规模
-
-**PB 级** / 单集群数百台机器
-
-SQL 接口
-
-**MySQL 协议兼容层**，ANSI SQL 语法
-
-## 典型使用场景[​](#典型使用场景 "典型使用场景的直接链接")
-
-Apache Doris 广泛应用于以下三大类场景：
-
-### 实时数据分析[​](#实时数据分析 "实时数据分析的直接链接")
-
-企业内外部实时报表、仪表盘、用户行为分析、AB 实验平台、日志检索分析。
-
-**代表案例**：
-
-*   实时大屏看板：双十一订单量实时监控，秒级更新
-*   用户画像分析：人群圈选与精准营销
-*   日志检索分析：问题定位与性能优化
-
-### 湖仓融合分析[​](#湖仓融合分析 "湖仓融合分析的直接链接")
-
-统一数仓构建、数据湖联邦查询加速、混合负载分析。
-
-![湖仓一体架构图](https://cdnd.selectdb.com/zh-CN/assets/images/04-lakehouse-architecture-c3ad6687e2a9ba72e815b6d97a545b35.jpg)
-
-### 混合检索分析（AI 数据栈）[​](#混合检索分析ai-数据栈 "混合检索分析（AI 数据栈）的直接链接")
-
-在大模型时代，Apache Doris 深度融合**文本搜索、向量搜索、AI 函数**能力，构建从数据存储、检索到分析的完整 AI 数据栈。
-
-场景
-
-说明
-
-**Agent Facing Analytics**
-
-AI Agent 毫秒级实时决策（反欺诈检测、智能推荐）
-
-**混合检索与分析**
-
-同时执行向量相似度搜索 + 关键词过滤 + 聚合分析，一条 SQL
-
-**RAG 应用**
-
-企业知识库问答、智能客服、文档助手
-
-**语义搜索**
-
-跨语言检索、同义词识别、意图理解
-
-**AI 可观测性**
-
-模型训练监控、推理追踪、日志分析
-
-## 系统架构[​](#系统架构 "系统架构的直接链接")
-
-Apache Doris 高度兼容 MySQL 协议，支持标准 SQL，可通过各类客户端工具访问，与 BI 工具无缝集成。部署 Apache Doris 时，可以根据业务需求选择**存算一体架构**或**存算分离架构**。
-
-![存算一体与存算分离架构图](https://cdnd.selectdb.com/zh-CN/assets/images/06-07-compute-storage-architecture-db71348e8390d5a6a7ad97d6f2689949.jpg)
-
-### 存算一体架构[​](#存算一体架构 "存算一体架构的直接链接")
-
-精简架构，包含两类进程：
-
-*   **Frontend (FE)**：接收请求、查询解析、元数据管理、节点管理
-*   **Backend (BE)**：数据存储、查询执行（多副本存储）
-
-生产环境部署多个 FE 节点实现高可用，FE 节点分为 Master、Follower、Observer 三种角色。
-
-### 存算分离架构（共享存储）[​](#存算分离架构共享存储 "存算分离架构（共享存储）的直接链接")
-
-存储和计算分离，**独立扩展存储容量和计算资源**：
-
-*   **计算层**：多个计算组，每组可作为独立租户
-*   **存储层**：S3/HDFS/OSS 等共享存储
-
-**如何选择**：业务规模可控、追求简单运维 → 存算一体；需要弹性扩缩容 → 存算分离。
-
-## 技术特点[​](#技术特点 "技术特点的直接链接")
-
-### 存储引擎[​](#存储引擎 "存储引擎的直接链接")
-
-Apache Doris 采用列式存储技术，按列进行数据的编码、压缩和读取，实现极高的压缩比的同时减少大量非相关数据的扫描，从而更有效地利用 IO 和 CPU 资源。Doris 针对超宽表（10000+ 列）场景做了深度优化，确保稀疏列的高效存储与查询。为满足不同业务场景需求，Doris 提供多种索引结构（Sorted Compound Key、Min/Max、BloomFilter、倒排索引、向量索引）和存储模型（明细模型、聚合模型、主键模型），并支持强一致的单表物化视图和异步刷新的多表物化视图。
-
-*   **列式存储**：按列编码、压缩、读取，高压缩比 + 减少 IO
-*   **多种索引**：Sorted Compound Key、Min/Max、BloomFilter、**倒排索引**、**向量索引**
-*   **存储模型**：明细模型、聚合模型、主键模型（支持行级别更新）
-*   **物化视图**：单表强一致物化视图 + 多表异步物化视图
-
-> **向量索引和倒排索引是支持 Hybrid Search（混合检索与分析）的核心技术**，详见 [AI 概述](/zh-CN/docs/4.x/ai/ai-overview/)。
-
-### 查询引擎[​](#查询引擎 "查询引擎的直接链接")
-
-Apache Doris 查询引擎基于 MPP（大规模并行处理）架构，支持节点间和节点内并行执行，以及多个大型表的分布式 Shuffle Join。在复杂多表关联（Join）场景中，Doris 通过全局查询规划、分布式 Join 策略和运行时过滤（Runtime Filter）技术，大幅减少数据传输量，加速 Join 性能。Doris 采用向量化执行技术，所有内存结构按列式布局，可显著减少虚函数调用、提高缓存命中率并有效利用 SIMD 指令，在宽表聚合场景下性能提升 5-10 倍。结合自适应查询执行（AQE）和 Pipeline 执行引擎，根据运行时统计信息动态优化执行计划，充分利用多核 CPU 能力。
-
-*   **MPP 架构**：节点间/节点内并行执行，大表分布式 Shuffle Join
-*   **向量化执行**：内存结构列式布局，SIMD 指令，5-10x 性能提升
-*   **自适应查询执行 (AQE)**：Runtime Filter 动态优化 Join
-*   **Pipeline 执行引擎**：多核 CPU 并行，限制线程数解决膨胀
-
-### 混合检索能力（AI 增强）[​](#混合检索能力ai-增强 "混合检索能力（AI 增强）的直接链接")
-
-Apache Doris 在单条 SQL 中融合**结构化分析 + 全文检索 + 向量搜索**能力，一套系统同时支持向量相似度搜索、关键词过滤和聚合分析，无需数据迁移和异构系统集成。结合 VARIANT 类型原生支持动态 JSON 结构和 Light Schema Change 秒级变更字段能力，为 RAG 应用、语义搜索、企业知识库等 AI 场景提供高效的数据支撑。
+[下载脚本](/files/start-doris.sh)，运行以下命令赋予执行权限：
 
 ```
-SELECT * FROM productsWHERE match(query_vector, 'summer breathable shoes')  -- Vector similarity search  AND body MATCH 'breathable lightweight'           -- Full-text keyword search  AND category_id = 1                                -- Structured filteringGROUP BY brandORDER BY sales_count DESC;
+chmod 755 start-doris.sh
 ```
 
-*   **一体化架构**：无需数据迁移，无需异构系统
-*   **混合查询性能**：单 SQL 同时执行向量 + 关键词 + 聚合
-*   **VARIANT 类型**：原生支持动态 JSON，Light Schema Change 秒级变更
+### 第 2 步（2/3）：启动集群[​](#第-2-步23启动集群 "第 2 步（2/3）：启动集群的直接链接")
 
-## 生态集成[​](#生态集成 "生态集成的直接链接")
+运行脚本启动集群（默认使用 4.0.1 版本）：
 
-Apache Doris 与主流数据生态深度集成。
+```
+bash start-doris.sh
+```
 
-![生态集成图](https://cdnd.selectdb.com/zh-CN/assets/images/12-ecosystem-integration-a435f9d167ca7972f79a3f87182617b1.jpg)
+如需指定版本，使用 `-v` 参数：
 
-## 社区与贡献[​](#社区与贡献 "社区与贡献的直接链接")
+```
+bash start-doris.sh -v 4.1.0
+```
 
-欢迎加入社区建设：[https://doris.apache.org/community/join-community](https://doris.apache.org/community/join-community)
+### 第 3 步（3/3）：验证集群状态[​](#第-3-步33验证集群状态 "第 3 步（3/3）：验证集群状态的直接链接")
 
-最后于 **2026年5月17日** 更新
+使用 MySQL 客户端连接集群，检查 FE 和 BE 状态：
+
+```
+-- 目的：验证 FE 节点是否正常加入集群-- 期望：Join 和 Alive 列均为 truemysql -uroot -P9030 -h127.0.0.1 -e 'SELECT `host`, `join`, `alive` FROM frontends()'
+```
+
+```
+-- 目的：验证 BE 节点是否正常心跳-- 期望：Alive 列为 1mysql -uroot -P9030 -h127.0.0.1 -e 'SELECT `host`, `alive` FROM backends()'
+```
+
+**输出解析：** `Alive=true`（FE）或 `Alive=1`（BE）表示节点运行正常。
+
+* * *
+
+## 本地完整部署[​](#本地完整部署 "本地完整部署的直接链接")
+
+环境要求
+
+*   **操作系统：** Ubuntu 等 AMD/ARM 主流 Linux 环境
+*   **Java 环境：** JDK 17+
+*   **用户权限：** 推荐新建 Doris 用户，避免使用 root
+
+### 第 1 步（1/4）：下载二进制包[​](#第-1-步14下载二进制包 "第 1 步（1/4）：下载二进制包的直接链接")
+
+从 Apache Doris [下载页面](https://doris.apache.org/zh-CN/download) 下载对应系统的二进制安装包，并解压到指定目录。
+
+### 第 2 步（2/4）：配置系统环境[​](#第-2-步24配置系统环境 "第 2 步（2/4）：配置系统环境的直接链接")
+
+**修改最大文件句柄数**（避免打开文件过多导致报错）：
+
+```
+vi /etc/security/limits.conf* soft nofile 1000000* hard nofile 1000000
+```
+
+**修改虚拟内存区域**：
+
+```
+cat >> /etc/sysctl.conf << EOFvm.max_map_count = 2000000EOFsysctl -p
+```
+
+### 第 3 步（3/4）：部署 FE[​](#第-3-步34部署-fe "第 3 步（3/4）：部署 FE的直接链接")
+
+1.  **配置 FE**：编辑 `apache-doris/fe/conf/fe.conf`
+    
+    ```
+    # 指定 Java 环境JAVA_HOME=/home/doris/jdk# 指定 FE 监听 IP（根据实际网段修改）priority_networks=127.0.0.1/32
+    ```
+    
+2.  **启动 FE**：
+    
+    ```
+    apache-doris/fe/bin/start_fe.sh --daemon
+    ```
+    
+3.  **验证 FE 状态**：
+    
+    ```
+    -- 目的：确认 FE 已启动并加入集群-- 期望：Join=true, Alive=true, IsMaster=truemysql -uroot -P9030 -h127.0.0.1 -e "show frontends;"
+    ```
+    
+
+### 第 4 步（4/4）：部署 BE[​](#第-4-步44部署-be "第 4 步（4/4）：部署 BE的直接链接")
+
+1.  **配置 BE**：编辑 `apache-doris/be/conf/be.conf`
+    
+    ```
+    # 指定 BE 监听 IP（需与 FE 的 priority_networks 在同一网段）priority_networks=127.0.0.1/32
+    ```
+    
+2.  **启动 BE**：
+    
+    ```
+    apache-doris/be/bin/start_be.sh --daemon
+    ```
+    
+3.  **注册 BE 到集群**：
+    
+    ```
+    -- 目的：将 BE 节点加入集群管理ALTER SYSTEM ADD BACKEND "127.0.0.1:9050";
+    ```
+    
+4.  **验证 BE 状态**：
+    
+    ```
+    -- 目的：确认 BE 已注册且心跳正常-- 期望：Alive=truemysql -uroot -P9030 -h127.0.0.1 -e "show backends;"
+    ```
+    
+
+* * *
+
+## 运行首次查询[​](#运行首次查询 "运行首次查询的直接链接")
+
+无论你使用 Docker 还是本地部署，集群启动后都可以执行以下步骤体验 Doris 的 SQL 功能。
+
+### 连接集群[​](#连接集群 "连接集群的直接链接")
+
+```
+mysql -uroot -P9030 -h127.0.0.1
+```
+
+### 创建数据库和表[​](#创建数据库和表 "创建数据库和表的直接链接")
+
+```
+-- 目的：创建演示用数据库和表create database demo;use demo;create table mytable(    k1 TINYINT,    k2 DECIMAL(10, 2) DEFAULT "10.05",    k3 CHAR(10) COMMENT "string column",    k4 INT NOT NULL DEFAULT "1" COMMENT "int column")COMMENT "my first table"DISTRIBUTED BY HASH(k1) BUCKETS 1PROPERTIES ("replication_num" = "1");
+```
+
+### 导入测试数据[​](#导入测试数据 "导入测试数据的直接链接")
+
+```
+-- 目的：插入几条测试数据insert into mytable values(1, 0.14, 'a1', 20),(2, 1.04, 'b2', 21),(3, 3.14, 'c3', 22),(4, 4.35, 'd4', 23);
+```
+
+### 执行查询[​](#执行查询 "执行查询的直接链接")
+
+```
+-- 目的：验证数据导入成功-- 期望：看到 4 行数据select * from demo.mytable;
+```
+
+**输出示例：**
+
+```
++------+------+------+------+| k1   | k2   | k3   | k4   |+------+------+------+------+|    1 | 0.14 | a1   |   20 ||    2 | 1.04 | b2   |   21 ||    3 | 3.14 | c3   |   22 ||    4 | 4.35 | d4   |   23 |+------+------+------+------+
+```
+
+* * *
+
+## 常见问题[​](#常见问题 "常见问题的直接链接")
+
+### Q: Docker 部署适合生产环境吗？[​](#q-docker-部署适合生产环境吗 "Q: Docker 部署适合生产环境吗？的直接链接")
+
+不适合。Docker 部署仅用于本地开发和测试，数据在容器销毁时会丢失。生产环境请使用本地完整部署或多节点部署。
+
+### Q: 如何在 Mac 上安装 Docker？[​](#q-如何在-mac-上安装-docker "Q: 如何在 Mac 上安装 Docker？的直接链接")
+
+下载并安装 [Docker Desktop](https://www.docker.com/products/docker-desktop/)。
+
+### Q: Mac 安装 Docker Desktop 后提示 "Docker environment not detected"？[​](#q-mac-安装-docker-desktop-后提示-docker-environment-not-detected "Q: Mac 安装 Docker Desktop 后提示 \"Docker environment not detected\"？的直接链接")
+
+创建符号链接：
+
+```
+sudo ln -s /Applications/Docker.app/Contents/Resources/bin/docker /usr/local/bin/docker
+```
+
+### Q: Mac 上 Docker 报 "error getting credentials"？[​](#q-mac-上-docker-报-error-getting-credentials "Q: Mac 上 Docker 报 \"error getting credentials\"？的直接链接")
+
+删除 `~/.docker/config.json` 中的 `credsStore` 字段作为临时方案。注意：这会以明文存储凭据，仅限本地开发环境使用。
+
+### Q: BE 节点添加后仍显示 "Dead"？[​](#q-be-节点添加后仍显示-dead "Q: BE 节点添加后仍显示 \"Dead\"？的直接链接")
+
+检查 BE 的 `priority_networks` 是否与 FE 所在网段一致，并确认 BE 端口（9050/9060/8040/8060）未被防火墙拦截。
+
+### Q: 在 WSL2 中本地部署，BE 始终无法加入集群？[​](#q-在-wsl2-中本地部署be-始终无法加入集群 "Q: 在 WSL2 中本地部署，BE 始终无法加入集群？的直接链接")
+
+WSL2 的回环网络按发行版隔离，FE 与 BE 之间无法通过 `127.0.0.1` 互通，因此默认配置 `priority_networks=127.0.0.1/32` 在 WSL2 下会导致 BE 注册失败或心跳异常。
+
+解决方法：通过 `ip addr show eth0` 查看 WSL 实际网卡所在网段（通常为 `172.16.0.0/12` 或 `172.x.x.x/20`），然后将 `fe/conf/fe.conf` 与 `be/conf/be.conf` 中的 `priority_networks` 同步修改为该网段，重启 FE、BE 后重新执行 `ALTER SYSTEM ADD BACKEND`。
+
+### Q: 如何确认集群整体健康？[​](#q-如何确认集群整体健康 "Q: 如何确认集群整体健康？的直接链接")
+
+执行 `SHOW FRONTENDS;` 和 `SHOW BACKENDS;`，确保所有节点的 `Alive` 列为 `true`。
+
+* * *
+
+## 下一步[​](#下一步 "下一步的直接链接")
+
+*   \[数据建模指南\]：了解 Doris 的数据模型与分区策略(NEXT-TODO)
+*   \[SQL 操作入门\]：学习数据导入、查询和更新(NEXT-TODO)
+*   \[集群管理\]：掌握生产级集群运维(NEXT-TODO)
+
+警告（仅针对本地部署）
+
+以下内容**仅用于本地开发和测试**，**请勿用于生产环境**：
+
+1.  **数据易丢失：** Docker 部署在容器销毁时会丢失数据；单副本实例不具备数据冗余能力。
+2.  **单副本配置：** 示例中的建表语句均为单副本，生产环境应使用多副本存储以保证数据可靠性。
+
+最后于 **2026年5月25日** 更新

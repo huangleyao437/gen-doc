@@ -18,7 +18,9 @@
       <h2>Install</h2>
       <pre><code class="language-bash">pnpm add my-lib</code></pre>
       <p>Then import it:</p>
-      <pre><code class="language-js">import { myLib } from 'my-lib';</code></pre>
+      <pre><code class="language-js"><span class="token-line"><span class="token keyword">import</span> <span class="token punctuation">{</span> <span class="token maybe-class-name">MyLib</span> <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'my-lib'</span><span class="token punctuation">;</span></span>
+<span class="token-line"><span class="token keyword">const</span> <span class="token plain"> app </span><span class="token operator">=</span> <span class="token plain"> </span><span class="token function">initApp</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span>
+<span class="token-line"><span class="token plain"></span><span class="token function">app</span><span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span></span></code></pre>
       <h2>Supported Browsers</h2>
       <table>
         <thead>

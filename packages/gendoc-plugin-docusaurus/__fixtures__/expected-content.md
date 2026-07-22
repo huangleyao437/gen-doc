@@ -16,7 +16,9 @@ pnpm add my-lib
 Then import it:
 
 ```js
-import { myLib } from 'my-lib';
+import { MyLib } from 'my-lib';
+const  app =  initApp();
+app.start();
 ```
 
 ## Supported Browsers
