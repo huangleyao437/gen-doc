@@ -1,0 +1,12 @@
+[
+  { "title": "Introduction", "path": "/docs/intro" },
+  {
+    "title": "Guides",
+    "path": "",
+    "children": [
+      { "title": "Installation", "path": "/docs/guides/installation" },
+      { "title": "Configuration", "path": "/docs/guides/configuration" }
+    ]
+  },
+  { "title": "API Reference", "path": "/docs/api-reference" }
+]

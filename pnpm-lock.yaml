@@ -53,7 +53,17 @@ importers:
         version: 2.1.9(@types/node@26.1.1)
 
   packages/gendoc-plugin-docusaurus:
+    dependencies:
+      turndown:
+        specifier: ^7.2.0
+        version: 7.2.4
     devDependencies:
+      '@types/turndown':
+        specifier: ^5.0.0
+        version: 5.0.6
+      cheerio:
+        specifier: ^1.0.0
+        version: 1.2.0
       gendoc-core:
         specifier: workspace:*
         version: link:../gendoc-core
