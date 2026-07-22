@@ -63,7 +63,7 @@ export const docusaurusPlugin: FrameworkPlugin = {
       const nodes: NavNode[] = [];
       ul.children('li.menu__list-item').each((_, li) => {
         const $li = $(li);
-        const $link = $li.children('a.menu__link').first();
+        const $link = $li.find('a.menu__link').first();
         const title = $link.text().trim();
         const href = $link.attr('href') || '';
 

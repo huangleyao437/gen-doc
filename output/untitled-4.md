@@ -69,7 +69,7 @@ Doris 在排序键的前 36 字节上构建[前缀索引](/zh-CN/docs/4.x/gettin
 
 **前置要求：** 无特殊要求
 
-```
+```sql
 
 CREATE TABLE app_logs
 (
@@ -87,7 +87,7 @@ DISTRIBUTED BY RANDOM BUCKETS 10;
 
 **验证步骤：**
 
-```
+```sql
 
 -- 1. 验证分区是否自动创建
 SHOW PARTITIONS FROM app_logs;
@@ -102,7 +102,7 @@ SHOW TABLETS FROM app_logs;
 
 **前置要求：** 需要明确主键列
 
-```
+```sql
 
 CREATE TABLE user_profiles
 (
@@ -118,7 +118,7 @@ DISTRIBUTED BY HASH(user_id) BUCKETS 10;
 
 **验证步骤：**
 
-```
+```sql
 
 -- 1. 验证主键唯一性（同一 user_id 只有一条最新数据）
 SELECT user_id, count(*) as cnt FROM user_profiles GROUP BY user_id HAVING cnt > 1;
@@ -133,7 +133,7 @@ SHOW TABLETS FROM user_profiles;
 
 **前置要求：** 明确聚合维度列和指标列
 
-```
+```sql
 
 CREATE TABLE site_metrics
 (
@@ -150,7 +150,7 @@ DISTRIBUTED BY HASH(site_id) BUCKETS 10;
 
 **验证步骤：**
 
-```
+```sql
 
 -- 1. 验证聚合是否生效（相同 dt+site_id 的指标是否合并）
 SELECT dt, site_id, pv, uv FROM site_metrics ORDER BY dt DESC LIMIT 10;
@@ -170,7 +170,7 @@ EXPLAIN SELECT * FROM site_metrics WHERE dt = '2024-01-01';
 
 **快速验证：**
 
-```
+```sql
 
 -- 查看导入任务状态
 SHOW LOAD WHERE label = 'your_label';
@@ -193,7 +193,7 @@ SHOW TABLETS FROM your_table;
 
 **诊断命令：**
 
-```
+```sql
 
 -- 检查 tablet 大小分布（用于判断数据倾斜）
 SHOW TABLETS FROM your_table\G
@@ -208,7 +208,7 @@ SHOW TABLETS FROM your_table\G
 
 **验证排序键是否生效：**
 
-```
+```sql
 
 EXPLAIN SELECT * FROM your_table WHERE filter_column = 'xxx';
 -- 查看是否走 Sort Key 索引
@@ -220,7 +220,7 @@ EXPLAIN SELECT * FROM your_table WHERE filter_column = 'xxx';
 
 **快速上手：**
 
-```
+```sql
 
 -- 1. 执行查询并获取 query_id
 SET enable_profile = true;
@@ -239,7 +239,7 @@ SHOW PROFILE WHERE query_id = 'xxx';
 
 湖上表往往有海量数据，查询时务必在 WHERE 条件中包含分区列，使 Doris 只扫描必要的分区。可通过 `EXPLAIN <SQL>` 查看 `partition` 字段确认裁剪是否生效：
 
-```
+```text
 
 0:VPAIMON_SCAN_NODE(88)
     partition=203/0          -- 203 个分区被裁剪，实际扫描 0 个
@@ -283,7 +283,7 @@ POC 中建议先执行一次查询完成缓存加载，再以第二次查询的�
 
 **解决：** 检查 DDL 是否包含 `DISTRIBUTED BY HASH(xxx) BUCKETS n`，确保 BUCKETS 后跟正整数。
 
-```
+```sql
 
 -- 正确示例
 DISTRIBUTED BY HASH(user_id) BUCKETS 10;
@@ -297,7 +297,7 @@ DISTRIBUTED BY HASH(user_id) BUCKETS 10;
 2.  执行 `SHOW TABLETS FROM table_name` 检查 tablet 大小是否均匀
 3.  查看 Query Profile 定位瓶颈
 
-```
+```sql
 
 -- 检查是否走索引（看 output_id 是否有 Sort Key 列）
 EXPLAIN SELECT * FROM table_name WHERE key_col = 'xxx';
@@ -315,7 +315,7 @@ SHOW TABLETS FROM table_name;
 1.  在数据源侧合并小文件（每个文件 > 128 MB）
 2.  Doris 侧限制 Split 数量：
 
-```
+```sql
 
 SET max_file_split_num = 50000;
 ```
@@ -329,7 +329,7 @@ SET max_file_split_num = 50000;
 1.  合并写入批次，减少导入频率
 2.  启用 Group Commit：
 
-```
+```sql
 
 SET group_commit_mode = 'async_mode';
 ```
