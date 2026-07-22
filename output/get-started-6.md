@@ -2,6 +2,8 @@
 *   [中文](/zh-CN/docs/4.x/getting-started/before-you-start-the-poc/)
 *   [日本語](/ja/docs/4.x/getting-started/before-you-start-the-poc/)
 
+最后于 **2026年5月17日** 更新
+
 # 如何完成 Apache Doris POC 验证？
 
 本文档汇总了新用户常见的问题，旨在加速 POC 进程。内容按照 POC 的典型流程组织：
@@ -159,7 +161,7 @@ SELECT dt, site_id, pv, uv FROM site_metrics ORDER BY dt DESC LIMIT 10;
 EXPLAIN SELECT * FROM site_metrics WHERE dt = '2024-01-01';
 ```
 
-## 数据导入[​](#数据导�入 "数据导入的直接链接")
+## 数据导入[​](#数据导入 "数据导入的直接链接")
 
 选择合适的导入方式并遵循以下最佳实践，可以有效避免常见的性能问题：
 
@@ -361,5 +363,3 @@ SET group_commit_mode = 'async_mode';
 *   [查询调优](/zh-CN/docs/4.x/tags/查询调优/)
 *   [数据湖](/zh-CN/docs/4.x/tags/数据湖/)
 *   [新用户](/zh-CN/docs/4.x/tags/新用户/)
-
-最后于 **2026年5月17日** 更新

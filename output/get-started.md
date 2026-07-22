@@ -2,6 +2,8 @@
 *   [中文](/zh-CN/docs/4.x/getting-started/what-is-apache-doris/)
 *   [日本語](/ja/docs/4.x/getting-started/what-is-apache-doris/)
 
+最后于 **2026年5月17日** 更新
+
 # Apache Doris 概述
 
 Apache Doris 是一款基于 MPP 架构的高性能、实时分析型数据库，以**高效、简单、统一**著称：在亚秒级时间内返回海量数据查询结果，一套系统同时支持高并发点查询和高吞吐复杂分析。
@@ -123,5 +125,3 @@ Apache Doris 与主流数据生态深度集成。
 ## 社区与贡献[​](#社区与贡献 "社区与贡献的直接链接")
 
 欢迎加入社区建设：[https://doris.apache.org/community/join-community](https://doris.apache.org/community/join-community)
-
-最后于 **2026年5月17日** 更新

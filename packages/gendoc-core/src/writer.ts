@@ -25,11 +25,17 @@ export class Writer {
     const result: PathMapping[] = [];
     for (const node of navTree) {
       const filename = this.sanitize(node.title || path.basename(node.path));
-      const relativePath = parentDir ? `${parentDir}/${filename}.md` : `${filename}.md`;
-      result.push({ url: node.path, relativePath });
+      const childDir = parentDir ? `${parentDir}/${filename}` : filename;
+
+      // Only register page-level mappings for nodes with actual URLs.
+      // Category nodes (path === '' or '#') only contribute directories,
+      // not page entries — avoids every-page-matches-empty-string bug.
+      if (node.path && node.path !== '#') {
+        const relativePath = `${childDir}.md`;
+        result.push({ url: node.path, relativePath });
+      }
 
       if (node.children && node.children.length > 0) {
-        const childDir = parentDir ? `${parentDir}/${filename}` : filename;
         result.push(...this.buildPathMap(node.children, childDir));
       }
     }
@@ -44,7 +50,10 @@ export class Writer {
     outputDir: string,
   ): string {
     // Match by URL: try exact match first, then suffix match
-    const mapping = mappings.find(m => m.url === page.url || page.url.endsWith(m.url));
+    const mapping = mappings.find(m => {
+      if (!m.url) return false;
+      return m.url === page.url || page.url.endsWith(m.url);
+    });
     let basePath: string;
 
     if (mapping) {
