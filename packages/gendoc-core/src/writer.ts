@@ -42,32 +42,44 @@ export class Writer {
     return result;
   }
 
-  /** Resolve a page's output path, handling conflicts */
+  /** Resolve a page's output path, handling conflicts.
+   *  Uses the page's extracted title as filename, navTree for directory structure. */
   private resolvePath(
     page: ExtractedPage,
     mappings: PathMapping[],
     usedPaths: Set<string>,
     outputDir: string,
   ): string {
-    // Match by URL: try exact match first, then suffix match
+    // Determine directory from navTree mapping, fallback to URL path
     const mapping = mappings.find(m => {
       if (!m.url) return false;
       return m.url === page.url || page.url.endsWith(m.url);
     });
-    let basePath: string;
 
+    let dir: string;
     if (mapping) {
-      basePath = mapping.relativePath.replace(/\.md$/, '');
+      dir = path.dirname(mapping.relativePath);
+      if (dir === '.') dir = '';
     } else {
-      // Fallback: derive from URL path
-      const urlPath = new URL(page.url).pathname;
-      basePath = this.sanitize(urlPath.replace(/\/$/, '').split('/').pop() || 'untitled');
+      // Fallback: derive directory from URL path structure
+      const urlPath = new URL(page.url).pathname.replace(/\/$/, '');
+      const parts = urlPath.split('/').slice(0, -1);
+      dir = parts.map(s => this.sanitize(s)).join('/');
     }
 
-    let candidate = `${basePath}.md`;
+    // Use page title as filename, fallback to URL segment
+    const filename = page.title
+      ? this.sanitize(page.title)
+      : this.sanitize(
+          new URL(page.url).pathname.replace(/\/$/, '').split('/').pop() || 'untitled'
+        );
+
+    let candidate = dir ? `${dir}/${filename}.md` : `${filename}.md`;
     let counter = 2;
     while (usedPaths.has(candidate)) {
-      candidate = `${basePath}-${counter}.md`;
+      candidate = dir
+        ? `${dir}/${filename}-${counter}.md`
+        : `${filename}-${counter}.md`;
       counter++;
     }
     usedPaths.add(candidate);
