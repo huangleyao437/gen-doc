@@ -46,7 +46,9 @@ export function cleanDocusaurusContent($: CheerioAPI, $content: ReturnType<Cheer
     $(el).find('a.hash-link, a[aria-hidden="true"]').remove();
   });
 
-  // 启发式：子项几乎都是语言切换链接的短列表
+  // 启发式：子项几乎都是语言切换链接的短列表。
+  // 仅用标签文本判定（isLocaleLabel），不因 href 含 /zh-CN/、/en/ 等路径段就计为语言切换，
+  // 避免误删 i18n 站点上普通中文文档链接列表（如 Doris 侧栏/正文目录）。
   $content.find('ul, ol').each((_, list) => {
     const $list = $(list);
     const $items = $list.children('li');
@@ -54,8 +56,7 @@ export function cleanDocusaurusContent($: CheerioAPI, $content: ReturnType<Cheer
     let localeLike = 0;
     $items.each((__, li) => {
       const text = $(li).text().replace(/\s+/g, ' ').trim();
-      const href = $(li).find('a').first().attr('href') || '';
-      if (isLocaleLabel(text) || /\/(zh-CN|zh-cn|en|ja|jp)\//i.test(href)) {
+      if (isLocaleLabel(text)) {
         localeLike += 1;
       }
     });

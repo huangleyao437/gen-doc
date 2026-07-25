@@ -17,6 +17,7 @@ function mapCards($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
   const $cards = $content.find('a.card, a[class*="cardContainer"]');
   if ($cards.length === 0) return;
 
+  // 只包裹本次由 card 生成的 li，避免全局 $content.find('li') 误包其它列表项
   $cards.each((_, el) => {
     const $a = $(el);
     const href = $a.attr('href') || '#';
@@ -28,18 +29,9 @@ function mapCards($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
     const $link = $('<a></a>').attr('href', href).text(title);
     $li.append($link);
     if (desc) $li.append(` — ${desc}`);
-    $a.replaceWith($li);
-  });
-
-  // 若 li 父节点不是 ul/ol，则包一层 ul
-  $content.find('li').each((_, li) => {
-    const parent = $(li).parent();
-    const tag = parent.length ? parent.get(0)?.tagName?.toLowerCase() : '';
-    if (tag !== 'ul' && tag !== 'ol') {
-      const $ul = $('<ul></ul>');
-      $(li).before($ul);
-      $ul.append(li);
-    }
+    // 替换时立即包 ul，不再做全局 li 扫描
+    const $ul = $('<ul></ul>').append($li);
+    $a.replaceWith($ul);
   });
 }
 
@@ -83,6 +75,9 @@ function mapTabs($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
       labels.push($(tab).text().replace(/\s+/g, ' ').trim());
     });
     const panels = $c.find('[role="tabpanel"]').toArray();
+    // 无 tabpanel 时不替换容器，避免只留下 h3 标题而丢掉正文
+    if (panels.length === 0) return;
+
     const $frag = $('<div class="gendoc-tabs"></div>');
     labels.forEach((label, i) => {
       if (!label) return;
@@ -91,10 +86,7 @@ function mapTabs($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
         $frag.append($(panels[i]).contents().clone());
       }
     });
-    // 若无 role=tabpanel，尝试 .margin-top--md 下的子 div
-    if (panels.length === 0) {
-      if ($frag.children().length === 0) return;
-    }
+    if ($frag.children().length === 0) return;
     $c.replaceWith($frag);
   });
 }

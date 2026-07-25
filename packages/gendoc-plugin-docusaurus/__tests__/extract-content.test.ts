@@ -71,4 +71,92 @@ describe('DocusaurusPlugin.extractContent', () => {
     expect(result.markdown).toMatch(/>\s*\*\*WARNING:\*\*/i);
     expect(result.markdown).toContain('Be careful');
   });
+
+  it('does not remove short Chinese doc link lists under /zh-CN/ paths', async () => {
+    // i18n 站点正文中的普通文档链接列表：href 含 locale 段，标签是文档标题而非语言名
+    const html = `<!DOCTYPE html>
+<html><head><meta name="generator" content="Docusaurus v3.5.0"><title>目录</title></head>
+<body><main><article>
+  <h1>相关文档</h1>
+  <p>请参阅下列章节了解更多细节与部署步骤说明。</p>
+  <ul>
+    <li><a href="/zh-CN/docs/install/compilation">编译安装</a></li>
+    <li><a href="/zh-CN/docs/install/cluster-deployment">集群部署</a></li>
+    <li><a href="/zh-CN/docs/query/sql-manual">SQL 手册</a></li>
+    <li><a href="/zh-CN/docs/admin/config">配置管理</a></li>
+  </ul>
+</article></main></body></html>`;
+    const result = await docusaurusPlugin.extractContent({
+      url: 'https://doris.apache.org/zh-CN/docs/gettingStarted',
+      html,
+      $: cheerio.load(html),
+    });
+    expect(result.markdown).toContain('编译安装');
+    expect(result.markdown).toContain('集群部署');
+    expect(result.markdown).toContain('SQL 手册');
+    expect(result.markdown).toContain('配置管理');
+    expect(result.markdown).toContain('/zh-CN/docs/install/compilation');
+  });
+
+  it('preserves tab container content when no role=tabpanel panels exist', async () => {
+    // 仅有 tab 标签、正文未用 role=tabpanel 包裹时，不得替换为仅含 h3 的碎片
+    const html = `<!DOCTYPE html>
+<html><head><meta name="generator" content="Docusaurus v3.5.0"><title>Tabs</title></head>
+<body><main><article>
+  <h1>Install</h1>
+  <div class="tabs-container">
+    <ul role="tablist" class="tabs">
+      <li class="tabs__item" role="tab">npm</li>
+      <li class="tabs__item" role="tab">pnpm</li>
+    </ul>
+    <div class="margin-top--md">
+      <div class="tab-content"><pre><code class="language-bash">npm i x</code></pre></div>
+      <div class="tab-content" hidden><pre><code class="language-bash">pnpm add x</code></pre></div>
+    </div>
+  </div>
+  <p>After install, run the app with the documented entry command carefully.</p>
+</article></main></body></html>`;
+    const result = await docusaurusPlugin.extractContent({
+      url: 'https://example.com/docs/install',
+      html,
+      $: cheerio.load(html),
+    });
+    // 正文代码不得因无 tabpanel 而丢失（可能仍含 tab 标签文本，但内容须保留）
+    expect(result.markdown).toContain('npm i x');
+    expect(result.markdown).toContain('pnpm add x');
+    expect(result.markdown).toContain('After install');
+  });
+
+  it('does not wrap unrelated bare li when mapping cards', async () => {
+    const html = `<!DOCTYPE html>
+<html><head><meta name="generator" content="Docusaurus v3.5.0"><title>Mix</title></head>
+<body><main><article>
+  <h1>Mixed content page with enough text for root selection</h1>
+  <p>Intro paragraph so content root selection has enough body text length here.</p>
+  <li class="orphan-item" data-marker="keep-orphan">Orphan list item not from card</li>
+  <div class="row">
+    <a class="card padding--lg" href="/docs/a"><h3>Title A</h3><p>Desc A</p></a>
+  </div>
+</article></main></body></html>`;
+    const $ = cheerio.load(html);
+    const result = await docusaurusPlugin.extractContent({
+      url: 'https://example.com/docs/mix',
+      html,
+      $,
+    });
+    expect(result.markdown).toContain('[Title A](/docs/a)');
+    expect(result.markdown).toContain('Orphan list item not from card');
+    // card 映射后应出现列表语法；孤儿 li 若被全局包 ul 不易在 md 中区分，
+    // 这里用原始 HTML 再跑一遍组件映射，断言孤儿 li 父节点仍非我们新建的 ul 独占包裹
+    const $2 = cheerio.load(html);
+    const $article = $2('article');
+    const { mapDocusaurusComponents } = await import('../src/component-map.js');
+    mapDocusaurusComponents($2, $article);
+    const orphanParent = $2('li.orphan-item').parent().get(0);
+    const orphanParentTag = orphanParent?.tagName?.toLowerCase() ?? '';
+    // 修复前会把孤儿 li 包进 ul；修复后父节点仍是 article
+    expect(orphanParentTag).toBe('article');
+    expect($2('a.card').length).toBe(0);
+    expect($2('ul > li > a[href="/docs/a"]').length).toBe(1);
+  });
 });
