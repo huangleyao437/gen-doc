@@ -2,6 +2,7 @@ import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
 import type { FrameworkPlugin, PageContext, DetectionResult, NavNode, ExtractedPage } from 'gendoc-core';
 import { cleanDocusaurusContent } from './dom-clean.js';
+import { mapDocusaurusComponents } from './component-map.js';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -113,6 +114,9 @@ export const docusaurusPlugin: FrameworkPlugin = {
 
     // 移除 chrome / 语言切换 / hash-link 等噪声 DOM
     cleanDocusaurusContent($, $content);
+
+    // DocCard / Admonition / Tabs → 语义化 HTML
+    mapDocusaurusComponents($, $content);
 
     // Extract title
     const title =

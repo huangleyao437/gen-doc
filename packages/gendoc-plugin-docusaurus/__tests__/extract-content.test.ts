@@ -43,4 +43,32 @@ describe('DocusaurusPlugin.extractContent', () => {
     expect(result.markdown).not.toMatch(/我是新手\[/);
     expect(result.frontmatter?.description).toBe('Doris intro');
   });
+
+  it('maps doc cards to list links', async () => {
+    const html = fs.readFileSync(path.join(fixtureDir, 'cards-snippet.html'), 'utf-8');
+    const result = await docusaurusPlugin.extractContent({
+      url: 'https://example.com/docs/cards',
+      html,
+      $: cheerio.load(html),
+    });
+    expect(result.markdown).toContain('[Title A](/docs/a)');
+    expect(result.markdown).toContain('Desc A');
+    expect(result.markdown).not.toMatch(/^\[$/m);
+    expect(result.markdown).toContain('[Title B](/docs/b)');
+  });
+
+  it('maps tabs to headings and admonitions to blockquotes', async () => {
+    const html = fs.readFileSync(path.join(fixtureDir, 'tabs-admonition.html'), 'utf-8');
+    const result = await docusaurusPlugin.extractContent({
+      url: 'https://example.com/docs/w',
+      html,
+      $: cheerio.load(html),
+    });
+    expect(result.markdown).toMatch(/###\s*npm/);
+    expect(result.markdown).toMatch(/###\s*pnpm/);
+    expect(result.markdown).toContain('npm i x');
+    expect(result.markdown).toContain('pnpm add x');
+    expect(result.markdown).toMatch(/>\s*\*\*WARNING:\*\*/i);
+    expect(result.markdown).toContain('Be careful');
+  });
 });
