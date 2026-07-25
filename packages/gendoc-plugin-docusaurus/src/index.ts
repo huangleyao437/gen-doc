@@ -44,6 +44,16 @@ export const docusaurusPlugin: FrameworkPlugin = {
     return null;
   },
 
+  async getExpandableNavUrls(page: PageContext): Promise<string[]> {
+    const urls = new Set<string>();
+    // 折叠分类：子树通常不在静态 HTML 中，需再抓分类入口页
+    page.$('li.menu__list-item--collapsed a.menu__link').each((_, el) => {
+      const href = page.$(el).attr('href')?.trim() || '';
+      if (href && href !== '#') urls.add(href);
+    });
+    return Array.from(urls);
+  },
+
   async getNavTree(page: PageContext): Promise<NavNode[]> {
     const $ = page.$;
 

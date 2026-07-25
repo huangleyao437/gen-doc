@@ -5,6 +5,7 @@ import { Crawler } from './crawler.js';
 import { Extractor } from './extractor.js';
 import { Writer } from './writer.js';
 import { PluginRegistry } from './plugin-registry.js';
+import { expandNavTree } from './nav-expander.js';
 import type { FrameworkPlugin, NavNode, PipelineOptions, PipelineResult, CrawlError } from './types.js';
 
 /** Flatten NavNode tree to unique URL path list */
@@ -82,11 +83,26 @@ export class Pipeline {
       }
     }
 
-    // 3. Parse nav tree
+    // 3. Parse nav tree, then expand collapsed categories (方案 A)
     if (this.options.verbose) console.log('📂 Parsing navigation...');
-    const navTree = await plugin.getNavTree(entryPage);
+    let navTree = await plugin.getNavTree(entryPage);
+    if (this.options.verbose) {
+      console.log(`   ${flattenNavUrls(navTree).length} pages in entry nav (before expand)`);
+    }
+
+    const expanded = await expandNavTree(navTree, entryPage, plugin, this.renderer, {
+      baseUrl: entryUrl,
+      concurrency: this.options.concurrency,
+      delay: this.options.delay,
+      verbose: this.options.verbose,
+    });
+    navTree = expanded.tree;
+    allErrors.push(...expanded.errors);
+
     const navUrls = flattenNavUrls(navTree);
-    if (this.options.verbose) console.log(`   ${navUrls.length} pages found in navigation`);
+    if (this.options.verbose) {
+      console.log(`   ${navUrls.length} pages in navigation after expand`);
+    }
 
     // 4. Resolve URLs and apply limits
     let allUrls = resolveUrls(navUrls, entryUrl);

@@ -13,6 +13,12 @@ export interface FrameworkPlugin {
 
   /** 提取正文内容为 Markdown */
   extractContent(page: PageContext): Promise<ExtractedPage>;
+
+  /**
+   * 返回需要二次抓取以展开完整导航的 URL（如折叠分类入口）。
+   * 未实现时，引擎使用默认 Docusaurus 选择器 `li.menu__list-item--collapsed a.menu__link`。
+   */
+  getExpandableNavUrls?(page: PageContext): Promise<string[]>;
 }
 
 /** 引擎传递给插件的页面上下文 */
