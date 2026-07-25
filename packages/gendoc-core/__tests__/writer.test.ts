@@ -54,11 +54,68 @@ describe('Writer', () => {
 
     expect(count).toBe(3);
     const intro = await fs.readFile(path.join(tmpDir, 'introduction.md'), 'utf-8');
-    expect(intro).toBe('# Intro content');
+    expect(intro.startsWith('---\n')).toBe(true);
+    expect(intro).toContain('title: "Introduction"');
+    expect(intro).toContain('source_url: "https://example.com/docs/intro"');
+    expect(intro).toContain('# Intro content');
     const install = await fs.readFile(path.join(tmpDir, 'guides', 'installation.md'), 'utf-8');
-    expect(install).toBe('# Install');
+    expect(install.startsWith('---\n')).toBe(true);
+    expect(install).toContain('title: "Installation"');
+    expect(install).toContain('source_url: "https://example.com/docs/guide/install"');
+    expect(install).toContain('# Install');
     const config = await fs.readFile(path.join(tmpDir, 'guides', 'configuration.md'), 'utf-8');
-    expect(config).toBe('# Config');
+    expect(config.startsWith('---\n')).toBe(true);
+    expect(config).toContain('title: "Configuration"');
+    expect(config).toContain('source_url: "https://example.com/docs/guide/config"');
+    expect(config).toContain('# Config');
+  });
+
+  it('writes frontmatter and rewrites internal links to relative md', async () => {
+    const pages: ExtractedPage[] = [
+      {
+        url: 'https://example.com/docs/intro',
+        title: 'Introduction',
+        markdown: '# Intro\n\nGo to [Install](/docs/guide/install#step).\n',
+        frontmatter: { description: 'Intro page' },
+      },
+      {
+        url: 'https://example.com/docs/guide/install',
+        title: 'Installation',
+        markdown: '# Install\n\nBack to [Intro](/docs/intro).\n',
+      },
+    ];
+    const navTree: NavNode[] = [
+      { title: 'Introduction', path: '/docs/intro' },
+      {
+        title: 'Guides',
+        path: '',
+        children: [{ title: 'Installation', path: '/docs/guide/install' }],
+      },
+    ];
+    const options: PipelineOptions = { ...defaultOptions, output: tmpDir };
+    await writer.write(pages, navTree, options);
+
+    const intro = await fs.readFile(path.join(tmpDir, 'introduction.md'), 'utf-8');
+    expect(intro).toContain('description: "Intro page"');
+    expect(intro).toMatch(/\[Install\]\(\.\/guides\/installation\.md#step\)|\[Install\]\(guides\/installation\.md#step\)/);
+
+    const install = await fs.readFile(path.join(tmpDir, 'guides', 'installation.md'), 'utf-8');
+    expect(install).toMatch(/\[Intro\]\(\.\.\/introduction\.md\)/);
+  });
+
+  it('sanitizes heading hash-link residue in body', async () => {
+    const pages: ExtractedPage[] = [
+      {
+        url: 'https://example.com/docs/x',
+        title: 'X',
+        markdown: '## Hello[\u200b](#hello "t")\n\nBody\n',
+      },
+    ];
+    const navTree: NavNode[] = [{ title: 'X', path: '/docs/x' }];
+    await writer.write(pages, navTree, { ...defaultOptions, output: tmpDir });
+    const body = await fs.readFile(path.join(tmpDir, 'x.md'), 'utf-8');
+    expect(body).toContain('## Hello');
+    expect(body).not.toContain('#hello');
   });
 
   it('sanitizes illegal filename characters', async () => {
