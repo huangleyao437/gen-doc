@@ -27,4 +27,20 @@ describe('DocusaurusPlugin.extractContent', () => {
     expect(result.markdown).toContain('| Firefox | 88+ | Full support |');
     expect(result.markdown).toContain('| Safari | 14+ | Partial support |');
   });
+
+  it('removes chrome: locale list, last-updated, hash-links, footer', async () => {
+    const html = fs.readFileSync(path.join(fixtureDir, 'dirty-intro.html'), 'utf-8');
+    const ctx = { url: 'https://example.com/zh-CN/docs/intro', html, $: cheerio.load(html) };
+    const result = await docusaurusPlugin.extractContent(ctx);
+
+    expect(result.title).toContain('Apache Doris');
+    expect(result.markdown).not.toMatch(/English/);
+    expect(result.markdown).not.toMatch(/日本語/);
+    expect(result.markdown).not.toMatch(/最后于/);
+    expect(result.markdown).not.toMatch(/Edit this page/);
+    expect(result.markdown).not.toMatch(/hash-link|直接链接/);
+    expect(result.markdown).toMatch(/我是新手/);
+    expect(result.markdown).not.toMatch(/我是新手\[/);
+    expect(result.frontmatter?.description).toBe('Doris intro');
+  });
 });

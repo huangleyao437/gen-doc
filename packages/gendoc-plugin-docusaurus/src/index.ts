@@ -1,6 +1,7 @@
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
 import type { FrameworkPlugin, PageContext, DetectionResult, NavNode, ExtractedPage } from 'gendoc-core';
+import { cleanDocusaurusContent } from './dom-clean.js';
 
 const turndown = new TurndownService({
   headingStyle: 'atx',
@@ -110,8 +111,8 @@ export const docusaurusPlugin: FrameworkPlugin = {
       $content = $('body');
     }
 
-    // Remove nav elements within content area
-    $content.find('nav, .theme-doc-toc-desktop, .theme-doc-toc-mobile').remove();
+    // 移除 chrome / 语言切换 / hash-link 等噪声 DOM
+    cleanDocusaurusContent($, $content);
 
     // Extract title
     const title =
