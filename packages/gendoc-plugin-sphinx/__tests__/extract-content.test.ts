@@ -73,5 +73,7 @@ describe('SphinxPlugin.extractContent', () => {
     expect(page.markdown).toMatch(/```bash/);
     expect(page.markdown).toContain('jupyter-book build mybook/');
     expect(page.markdown).not.toMatch(/Book 顶栏|On this page|bd-sidenav|Permalink|#\s*$/m);
+    // thebe / script 不应泄漏到 Markdown
+    expect(page.markdown).not.toMatch(/requestKernel|kernelName|thebe-config/i);
   });
 });

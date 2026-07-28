@@ -98,8 +98,8 @@ export const sphinxPlugin: FrameworkPlugin = {
 
     /**
      * 递归解析 ul 下的 li.toctree-l*：
-     * - 优先取 a.reference.internal（及任意 a）作为节点
-     * - 子 ul 递归为 children
+     * - 优先取直接子 a 作为节点
+     * - 子 ul：直接子 ul，或 PyData/Book 的 details > ul
      * - 外链叶子丢弃；过滤后无 children 的空分组丢弃
      */
     function parseList($ul: ReturnType<typeof $>): NavNode[] {
@@ -111,7 +111,11 @@ export const sphinxPlugin: FrameworkPlugin = {
         const title = normalizeText($a.text());
         const href = ($a.attr('href') || '').trim();
 
-        const $sub = $li.children('ul').first();
+        // Book Theme：子树常包在 <details><summary/><ul>...</ul></details>
+        const $sub =
+          $li.children('ul').first().length > 0
+            ? $li.children('ul').first()
+            : $li.children('details').children('ul').first();
         const children = $sub.length > 0 ? parseList($sub) : [];
 
         if (!href || isExternal(href)) {
@@ -136,78 +140,85 @@ export const sphinxPlugin: FrameworkPlugin = {
       return nodes;
     }
 
-    const result: NavNode[] = [];
-    const children = $root.children().toArray();
-    let i = 0;
-    while (i < children.length) {
-      const el = children[i]!;
-      const $el = $(el);
-      const tag = (el as { tagName?: string; name?: string }).tagName ||
+    function elementTag(el: unknown): string {
+      const t =
+        (el as { tagName?: string; name?: string }).tagName ||
         (el as { name?: string }).name ||
         '';
-
-      // caption 开组，紧随的 ul 为其 children
-      if ($el.is('p.caption') || ($el.is('p') && $el.hasClass('caption'))) {
-        const captionTitle =
-          normalizeText($el.find('.caption-text').first().text()) ||
-          normalizeText($el.text());
-        // 跳过 caption 后空白，取紧随 ul
-        let j = i + 1;
-        while (j < children.length) {
-          const next = children[j]!;
-          const $next = $(next);
-          const nextTag =
-            (next as { tagName?: string; name?: string }).tagName ||
-            (next as { name?: string }).name ||
-            '';
-          // 跳过非元素节点（text/comment）
-          if (!nextTag || nextTag === '#text' || nextTag === '#comment') {
-            j += 1;
-            continue;
-          }
-          if ($next.is('ul')) {
-            const groupChildren = parseList($next);
-            // 外链滤空后无 children 则不输出该 caption 组
-            if (groupChildren.length > 0 && captionTitle) {
-              result.push({ title: captionTitle, path: '', children: groupChildren });
-            }
-            i = j + 1;
-            break;
-          }
-          // 紧随不是 ul：结束本 caption 处理
-          i = j;
-          break;
-        }
-        if (j >= children.length) {
-          i = j;
-        }
-        continue;
-      }
-
-      if ($el.is('ul') || tag.toLowerCase() === 'ul') {
-        result.push(...parseList($el));
-        i += 1;
-        continue;
-      }
-
-      // Book: 中间层 div.bd-toc-item 等，递归找顶层 ul
-      if ($el.is('div') || tag.toLowerCase() === 'div') {
-        const $innerUl = $el.find('> ul, ul.bd-sidenav, ul.nav').first();
-        if ($innerUl.length > 0) {
-          result.push(...parseList($innerUl));
-        }
-        i += 1;
-        continue;
-      }
-
-      i += 1;
+      return String(t).toLowerCase();
     }
 
-    // 若按子节点未解析出内容，退化为在 root 内找第一个 ul
+    /**
+     * 解析容器直接子节点：caption+ul 分组、裸 ul、嵌套 div（bd-toc-item 等）
+     */
+    function parseContainer($container: ReturnType<typeof $>): NavNode[] {
+      const out: NavNode[] = [];
+      const kids = $container.children().toArray();
+      let i = 0;
+      while (i < kids.length) {
+        const el = kids[i]!;
+        const $el = $(el);
+        const tag = elementTag(el);
+
+        // caption 开组，紧随的 ul 为其 children
+        if ($el.is('p.caption') || ($el.is('p') && $el.hasClass('caption'))) {
+          const captionTitle =
+            normalizeText($el.find('.caption-text').first().text()) ||
+            normalizeText($el.text());
+          let j = i + 1;
+          while (j < kids.length) {
+            const next = kids[j]!;
+            const $next = $(next);
+            const nextTag = elementTag(next);
+            if (!nextTag || nextTag === '#text' || nextTag === '#comment') {
+              j += 1;
+              continue;
+            }
+            if ($next.is('ul') || nextTag === 'ul') {
+              const groupChildren = parseList($next);
+              if (groupChildren.length > 0 && captionTitle) {
+                out.push({ title: captionTitle, path: '', children: groupChildren });
+              }
+              i = j + 1;
+              break;
+            }
+            i = j;
+            break;
+          }
+          if (j >= kids.length) {
+            i = j;
+          }
+          continue;
+        }
+
+        if ($el.is('ul') || tag === 'ul') {
+          out.push(...parseList($el));
+          i += 1;
+          continue;
+        }
+
+        // Book: 中间层 div.bd-toc-item 等，递归解析其 caption/ul 子树
+        if ($el.is('div') || tag === 'div') {
+          out.push(...parseContainer($el));
+          i += 1;
+          continue;
+        }
+
+        i += 1;
+      }
+      return out;
+    }
+
+    let result = parseContainer($root);
+
+    // 若 root 自身是 ul
+    if (result.length === 0 && ($root.is('ul') || elementTag($root.get(0)) === 'ul')) {
+      result = parseList($root);
+    }
+
+    // 退化为在 root 内找第一个 ul
     if (result.length === 0) {
-      const $fallbackUl = $root.is('ul')
-        ? $root
-        : $root.find('ul.bd-sidenav, ul.nav, ul').first();
+      const $fallbackUl = $root.find('ul.bd-sidenav, ul.nav, ul').first();
       if ($fallbackUl.length > 0) {
         return parseList($fallbackUl);
       }

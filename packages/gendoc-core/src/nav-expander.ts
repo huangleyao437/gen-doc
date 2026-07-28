@@ -88,7 +88,8 @@ export function mergeNavTrees(base: NavNode[], extra: NavNode[]): NavNode[] {
 
 function resolveToAbsolute(href: string, baseUrl: string): string {
   if (href.startsWith('http://') || href.startsWith('https://')) return href;
-  return new URL(href, new URL(baseUrl).origin).href;
+  // 相对 href 相对 baseUrl（入口页）解析，勿仅用 origin（会丢 /en/stable/ 等前缀）
+  return new URL(href, baseUrl).href;
 }
 
 function sleep(ms: number): Promise<void> {

@@ -1,14 +1,34 @@
 [
   {
-    "title": "Introduction",
-    "path": "intro.html"
-  },
-  {
-    "title": "Content",
-    "path": "content/index.html",
+    "title": "Tutorials",
+    "path": "",
     "children": [
       {
-        "title": "MyST",
+        "title": "Create your first book",
+        "path": "start/your-first-book.html",
+        "children": [
+          {
+            "title": "Overview",
+            "path": "start/overview.html"
+          },
+          {
+            "title": "Create a template book",
+            "path": "start/create.html"
+          }
+        ]
+      },
+      {
+        "title": "Get started with references",
+        "path": "tutorials/references.html"
+      }
+    ]
+  },
+  {
+    "title": "Topic Guides",
+    "path": "",
+    "children": [
+      {
+        "title": "MyST Markdown overview",
         "path": "content/myst.html"
       }
     ]

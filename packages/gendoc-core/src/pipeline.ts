@@ -22,12 +22,13 @@ function flattenNavUrls(nodes: NavNode[]): string[] {
   return Array.from(urls);
 }
 
-/** Resolve relative paths to full URLs */
+/** Resolve relative / absolute paths to full URLs against entry page URL */
 function resolveUrls(paths: string[], baseUrl: string): string[] {
-  const base = new URL(baseUrl);
   return paths.map((p) => {
     if (p.startsWith('http://') || p.startsWith('https://')) return p;
-    return new URL(p, base.origin).href;
+    // 相对 path 必须相对入口页目录解析（Sphinx toctree 常见 start/foo.html）
+    // 以 / 开头的站点绝对 path 由 new URL 按 origin 处理
+    return new URL(p, baseUrl).href;
   });
 }
 

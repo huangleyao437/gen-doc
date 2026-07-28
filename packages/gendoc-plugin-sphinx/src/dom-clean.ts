@@ -46,6 +46,13 @@ export function cleanSphinxContent($: CheerioAPI, $content: ReturnType<CheerioAP
         // 其它元信息
         '.editthispage',
         '.page-info',
+        // 脚本 / Thebe 配置（常落在 article 末尾）
+        'script',
+        'noscript',
+        'style',
+        'template',
+        // 空的隐藏 toctree 包装
+        '.toctree-wrapper',
       ].join(', '),
     )
     .remove();

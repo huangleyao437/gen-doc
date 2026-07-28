@@ -1,16 +1,29 @@
-<nav class="bd-docs-nav bd-links" id="bd-docs-nav">
-  <div class="bd-toc-item navbar-nav">
+<nav class="bd-links bd-docs-nav" id="bd-docs-nav" aria-label="Main">
+  <div class="bd-toc-item navbar-nav active">
+    <p aria-level="2" class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
     <ul class="nav bd-sidenav">
-      <li class="toctree-l1">
-        <a class="reference internal" href="intro.html">Introduction</a>
+      <li class="toctree-l1 has-children">
+        <a class="reference internal" href="start/your-first-book.html">Create your first book</a>
+        <details>
+          <summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary>
+          <ul>
+            <li class="toctree-l2">
+              <a class="reference internal" href="start/overview.html">Overview</a>
+            </li>
+            <li class="toctree-l2">
+              <a class="reference internal" href="start/create.html">Create a template book</a>
+            </li>
+          </ul>
+        </details>
       </li>
       <li class="toctree-l1">
-        <a class="reference internal" href="content/index.html">Content</a>
-        <ul>
-          <li class="toctree-l2">
-            <a class="reference internal" href="content/myst.html">MyST</a>
-          </li>
-        </ul>
+        <a class="reference internal" href="tutorials/references.html">Get started with references</a>
+      </li>
+    </ul>
+    <p aria-level="2" class="caption" role="heading"><span class="caption-text">Topic Guides</span></p>
+    <ul class="nav bd-sidenav">
+      <li class="toctree-l1">
+        <a class="reference internal" href="content/myst.html">MyST Markdown overview</a>
       </li>
     </ul>
   </div>
