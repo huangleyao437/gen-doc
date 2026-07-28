@@ -218,9 +218,119 @@ export const sphinxPlugin: FrameworkPlugin = {
 
 
   async extractContent(page: PageContext): Promise<ExtractedPage> {
-    void cleanSphinxContent;
-    void mapSphinxComponents;
-    void turndown;
-    return { url: page.url, title: '', markdown: '', frontmatter: {} };
+    const $ = page.$;
+
+    const selectors = [
+      'article[role="main"]',
+      '.bd-article',
+      'div.bd-article',
+      '.article-container article',
+      'article',
+      'main .body',
+      'div[itemprop="articleBody"]',
+      'main',
+      'body',
+    ];
+
+    let $content: ReturnType<typeof $> | null = null;
+    for (const sel of selectors) {
+      const match = $(sel);
+      if (match.length > 0 && match.text().trim().length > 50) {
+        $content = match.first();
+        break;
+      }
+    }
+    // 短页面放宽长度阈值
+    if (!$content) {
+      for (const sel of selectors) {
+        const match = $(sel);
+        if (match.length > 0 && match.text().trim().length > 0) {
+          $content = match.first();
+          break;
+        }
+      }
+    }
+    if (!$content) {
+      $content = $('body');
+    }
+
+    cleanSphinxContent($, $content);
+    mapSphinxComponents($, $content);
+
+    const title =
+      $content.find('h1').first().text().replace(/\s+/g, ' ').trim() ||
+      $('title')
+        .text()
+        .replace(/\s*[—–\-|].*$/, '')
+        .trim() ||
+      '';
+
+    // Sphinx highlight-* / 代码块：语言 class 落到 code，保证 pre>code 结构供 turndown fenced
+    $content.find('div.highlight, pre').each((_, node) => {
+      const $node = $(node);
+      const $pre = $node.is('pre') ? $node : $node.find('pre').first();
+      if ($pre.length === 0) return;
+      // 已处理过的 pre 跳过（div.highlight 与其内 pre 都会匹配）
+      if ($pre.attr('data-gendoc-code') === '1') return;
+
+      const $codeEl = $pre.find('code').first();
+      const preClass = $pre.attr('class') || '';
+      const codeClass = $codeEl.attr('class') || '';
+      // 合并自身与祖先 class（highlight-bash 常在 .highlight 的父级）
+      const ancestorCls = $pre
+        .parents()
+        .map((__, p) => $(p).attr('class') || '')
+        .get()
+        .join(' ');
+      const classPool = [$node.attr('class') || '', preClass, codeClass, ancestorCls].join(' ');
+
+      let lang: string | undefined;
+      const langMatch =
+        classPool.match(/highlight-(\w[\w+-]*)/) || classPool.match(/language-(\S+)/);
+      if (langMatch) {
+        const raw = langMatch[1]!.toLowerCase();
+        lang = raw.startsWith('ipython') ? 'python' : raw === 'default' ? 'text' : raw;
+      }
+
+      // 行级 span 压平为纯文本
+      let text: string;
+      if ($codeEl.length > 0) {
+        const $lines = $codeEl.find('span.line, span.token-line');
+        if ($lines.length > 0) {
+          text = $lines
+            .map((__, span) => $(span).text())
+            .get()
+            .join('\n');
+        } else {
+          text = $codeEl.text();
+        }
+      } else {
+        text = $pre.text();
+      }
+
+      // 重建 pre>code，去掉 Pygments 空 span 等干扰（否则 turndown 不认 fenced）
+      const $newCode = $('<code></code>');
+      $newCode.text(text);
+      if (lang) {
+        $newCode.attr('class', `language-${lang}`);
+      } else if (codeClass.includes('language-')) {
+        $newCode.attr('class', codeClass);
+      }
+      $pre.empty().append($newCode);
+      $pre.attr('data-gendoc-code', '1');
+    });
+
+    // 再次清掉可能残留的 copy 按钮
+    $content.find('button.copy, button.copybtn, .copybtn, span.lang').remove();
+
+    const html = $content.html() || '';
+    const markdown = turndown.turndown(html);
+
+    const description = $('meta[name="description"]').attr('content') || '';
+    const frontmatter: Record<string, unknown> = {};
+    if (description) frontmatter.description = description;
+
+    return { url: page.url, title, markdown, frontmatter };
   },
 };
+
