@@ -6,6 +6,7 @@ import { Extractor } from './extractor.js';
 import { Writer } from './writer.js';
 import { PluginRegistry } from './plugin-registry.js';
 import { expandNavTree } from './nav-expander.js';
+import { filterUrlsByPath } from './path-filter.js';
 import type { FrameworkPlugin, NavNode, PipelineOptions, PipelineResult, CrawlError } from './types.js';
 
 /** Flatten NavNode tree to unique URL path list */
@@ -110,6 +111,20 @@ export class Pipeline {
     // Add entry URL if not in navTree
     if (!allUrls.includes(entryUrl)) {
       allUrls.unshift(entryUrl);
+    }
+
+    // include / exclude（pathname glob；在 dedupe 之后、maxPages 之前）
+    if (this.options.include || this.options.exclude) {
+      const before = allUrls.length;
+      allUrls = filterUrlsByPath(allUrls, {
+        include: this.options.include,
+        exclude: this.options.exclude,
+      });
+      if (this.options.verbose) {
+        console.log(
+          `   Filtered URLs by include/exclude: ${before} → ${allUrls.length}`,
+        );
+      }
     }
 
     // Apply page limit

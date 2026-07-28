@@ -9,6 +9,7 @@ export { Pipeline } from './pipeline.js';
 export { sanitizeMarkdown } from './markdown-sanitizer.js';
 export { rewriteLinks, normalizeUrlPath } from './link-rewriter.js';
 export type { LinkRewriteContext } from './link-rewriter.js';
+export { matchPathGlob, filterUrlsByPath } from './path-filter.js';
 export {
   expandNavTree,
   mergeNavTrees,
