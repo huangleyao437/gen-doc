@@ -77,6 +77,31 @@ importers:
         specifier: ^2.0.0
         version: 2.1.9(@types/node@26.1.1)
 
+  packages/gendoc-plugin-vitepress:
+    dependencies:
+      turndown:
+        specifier: ^7.2.0
+        version: 7.2.4
+      turndown-plugin-gfm:
+        specifier: ^1.0.2
+        version: 1.0.2
+    devDependencies:
+      '@types/turndown':
+        specifier: ^5.0.0
+        version: 5.0.6
+      cheerio:
+        specifier: ^1.0.0
+        version: 1.2.0
+      gendoc-core:
+        specifier: workspace:*
+        version: link:../gendoc-core
+      typescript:
+        specifier: ^5.5.0
+        version: 5.9.3
+      vitest:
+        specifier: ^2.0.0
+        version: 2.1.9(@types/node@26.1.1)
+
 packages:
 
   '@esbuild/aix-ppc64@0.21.5':
