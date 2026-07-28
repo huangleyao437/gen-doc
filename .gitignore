@@ -5,13 +5,40 @@ dist/
 gendoc-errors.log
 .worktrees/
 
-# 本地/工具与生成物（不提交）
-.claude/
-.superpowers/
-CLAUDE.md
-docs/superpowers/
+# 生成物 / 抓取输出
 output/
 output_*/
 output_ai/
 output_ai_final/
 output_ai_knowledge/
+
+# ---------- vibe coding / AI 助手本地文件（一律不入库）----------
+# Claude Code
+.claude/
+CLAUDE.md
+Claude.md
+claude.md
+
+# Grok Build
+.grok/
+
+# Superpowers / 设计草稿工作流
+.superpowers/
+docs/superpowers/
+
+# 通用助手约定（本地维护，不推远程）
+AGENTS.md
+agents.md
+
+# 其他常见 AI / vibe 工具目录与配置
+.cursor/
+.cursorrules
+.windsurf/
+.aider*
+.continue/
+.codex/
+.github/copilot-instructions.md
+.vscode/copilot*
+*.code-workspace
+.idea/**/ai*
+)
