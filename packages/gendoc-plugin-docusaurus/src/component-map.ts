@@ -1,7 +1,7 @@
 import type { CheerioAPI } from 'cheerio';
 
 /**
- * 将 Docusaurus 组件（DocCard / Admonition / Tabs）映射为语义化 HTML，
+ * 将 Docusaurus / 文档站卡片组件映射为语义化 HTML，
  * 便于 turndown 输出可读 Markdown。
  */
 export function mapDocusaurusComponents($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
@@ -13,26 +13,65 @@ export function mapDocusaurusComponents($: CheerioAPI, $content: ReturnType<Chee
   mapTabs($, $content);
 }
 
+/**
+ * 卡片选择器：
+ * - 标准 DocCard：a.card / cardContainer
+ * - Doris 等自定义：a.getting-started-card、.cards-grid > a
+ */
+const CARD_SELECTORS = [
+  'a.card',
+  'a[class*="cardContainer"]',
+  'a.getting-started-card',
+  'a[class*="getting-started-card"]',
+  '.cards-grid > a[href]',
+].join(', ');
+
 function mapCards($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
-  const $cards = $content.find('a.card, a[class*="cardContainer"]');
+  const $cards = $content.find(CARD_SELECTORS);
   if ($cards.length === 0) return;
 
-  // 只包裹本次由 card 生成的 li，避免全局 $content.find('li') 误包其它列表项
+  // 按父节点分组，同一 cards-grid 内合并为一个 ul
+  type CardEl = (typeof $cards)[0];
+  const groups = new Map<unknown, CardEl[]>();
+  const seen = new Set<unknown>();
+
   $cards.each((_, el) => {
-    const $a = $(el);
-    const href = $a.attr('href') || '#';
-    const title =
-      $a.find('h1,h2,h3,h4,h5,h6').first().text().trim() ||
-      $a.text().replace(/\s+/g, ' ').trim();
-    const desc = $a.find('p').first().text().trim();
-    const $li = $('<li></li>');
-    const $link = $('<a></a>').attr('href', href).text(title);
-    $li.append($link);
-    if (desc) $li.append(` — ${desc}`);
-    // 替换时立即包 ul，不再做全局 li 扫描
-    const $ul = $('<ul></ul>').append($li);
-    $a.replaceWith($ul);
+    if (seen.has(el)) return;
+    seen.add(el);
+    const parent = 'parent' in el ? (el as { parent: unknown }).parent : null;
+    const list = groups.get(parent) ?? [];
+    list.push(el);
+    groups.set(parent, list);
   });
+
+  for (const [, els] of groups) {
+    if (els.length === 0) continue;
+
+    const $ul = $('<ul class="gendoc-cards"></ul>');
+    for (const el of els) {
+      const $a = $(el);
+      const href = $a.attr('href') || '#';
+      const title =
+        $a.find('h1,h2,h3,h4,h5,h6').first().text().trim() ||
+        $a.find('.card-content h1, .card-content h2, .card-content h3').first().text().trim() ||
+        $a.text().replace(/\s+/g, ' ').trim();
+      const desc =
+        $a.find('p').first().text().trim() ||
+        $a.find('.card-content p').first().text().trim();
+
+      const $li = $('<li></li>');
+      const $link = $('<a></a>').attr('href', href).text(title || href);
+      $li.append($link);
+      if (desc) $li.append(` — ${desc}`);
+      $ul.append($li);
+    }
+
+    // 用 ul 替换第一张卡片，移除同组其余卡片
+    $(els[0]).replaceWith($ul);
+    for (let i = 1; i < els.length; i++) {
+      $(els[i]).remove();
+    }
+  }
 }
 
 function mapAdmonitions($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
@@ -44,7 +83,11 @@ function mapAdmonitions($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
     if ($el.parents('.theme-admonition, .admonition').length > 0) return;
     // class 仅含 admonitionHeading / admonitionContent 的内层节点
     const cls = ($el.attr('class') || '').toLowerCase();
-    if (/admonition(heading|content)/i.test(cls) && !$el.hasClass('theme-admonition') && !$el.hasClass('admonition')) {
+    if (
+      /admonition(heading|content)/i.test(cls) &&
+      !$el.hasClass('theme-admonition') &&
+      !$el.hasClass('admonition')
+    ) {
       return;
     }
 

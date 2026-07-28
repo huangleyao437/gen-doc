@@ -4,3 +4,14 @@ dist/
 .gendoc-state.json
 gendoc-errors.log
 .worktrees/
+
+# 本地/工具与生成物（不提交）
+.claude/
+.superpowers/
+CLAUDE.md
+docs/superpowers/
+output/
+output_*/
+output_ai/
+output_ai_final/
+output_ai_knowledge/

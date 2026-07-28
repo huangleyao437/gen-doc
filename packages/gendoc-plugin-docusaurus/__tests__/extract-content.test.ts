@@ -57,6 +57,23 @@ describe('DocusaurusPlugin.extractContent', () => {
     expect(result.markdown).toContain('[Title B](/docs/b)');
   });
 
+  it('maps Doris getting-started-card / cards-grid to list links (no turndown explode)', async () => {
+    const html = fs.readFileSync(path.join(fixtureDir, 'doris-cards-snippet.html'), 'utf-8');
+    const result = await docusaurusPlugin.extractContent({
+      url: 'https://doris.apache.org/zh-CN/docs/4.x/table-design/overview/',
+      html,
+      $: cheerio.load(html),
+    });
+    expect(result.markdown).toContain('[表模型概述](/zh-CN/docs/4.x/table-design/data-model/intro/)');
+    expect(result.markdown).toContain('[明细模型 (Duplicate)](/zh-CN/docs/4.x/table-design/data-model/duplicate/)');
+    expect(result.markdown).toContain('[主键模型 (Unique)](/zh-CN/docs/4.x/table-design/data-model/unique/)');
+    expect(result.markdown).toContain('[聚合模型 (Aggregate)](/zh-CN/docs/4.x/table-design/data-model/aggregate/)');
+    expect(result.markdown).toContain('保留原始明细数据');
+    // 不得出现 DocCard 炸裂：孤立 ](url)[ 或仅有 ](path) 行
+    expect(result.markdown).not.toMatch(/^\]\(/m);
+    expect(result.markdown).not.toMatch(/\]\([^)]+\)\[/);
+  });
+
   it('maps tabs to headings and admonitions to blockquotes', async () => {
     const html = fs.readFileSync(path.join(fixtureDir, 'tabs-admonition.html'), 'utf-8');
     const result = await docusaurusPlugin.extractContent({

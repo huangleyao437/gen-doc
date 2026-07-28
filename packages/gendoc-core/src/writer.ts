@@ -45,119 +45,193 @@ export class Writer {
     for (const node of navTree) {
       const filename = this.sanitize(node.title || path.basename(node.path));
       const childDir = parentDir ? `${parentDir}/${filename}` : filename;
+      const hasChildren = Boolean(node.children && node.children.length > 0);
 
       // Only register page-level mappings for nodes with actual URLs.
       // Category nodes (path === '' or '#') only contribute directories,
       // not page entries — avoids every-page-matches-empty-string bug.
+      //
+      // 有子节点时写成 childDir/index.md，避免同时存在「name.md + name/」同名文件与目录：
+      // 该结构在 Windows / 部分 Markdown 预览器里会导致相对链接无法点击跳转。
       if (node.path && node.path !== '#') {
-        const relativePath = `${childDir}.md`;
+        const relativePath = hasChildren ? `${childDir}/index.md` : `${childDir}.md`;
         result.push({ url: node.path, relativePath });
       }
 
-      if (node.children && node.children.length > 0) {
-        result.push(...this.buildPathMap(node.children, childDir));
+      if (hasChildren) {
+        result.push(...this.buildPathMap(node.children!, childDir));
       }
     }
     return result;
   }
 
-  /** Resolve a page's output path, handling conflicts.
-   *  Uses the page's extracted title as filename, navTree for directory structure. */
-  private resolvePath(
-    page: ExtractedPage,
-    mappings: PathMapping[],
-    usedPaths: Set<string>,
-    outputDir: string,
-  ): string {
-    // Determine directory from navTree mapping, fallback to URL path
-    const mapping = mappings.find(m => {
-      if (!m.url) return false;
-      return m.url === page.url || page.url.endsWith(m.url);
-    });
-
-    let dir: string;
-    if (mapping) {
-      dir = path.dirname(mapping.relativePath);
-      if (dir === '.') dir = '';
-    } else {
-      // Fallback: derive directory from URL path structure
-      const urlPath = new URL(page.url).pathname.replace(/\/$/, '');
-      const parts = urlPath.split('/').slice(0, -1);
-      dir = parts.map(s => this.sanitize(s)).join('/');
+  private findMapping(pageUrl: string, mappings: PathMapping[]): PathMapping | undefined {
+    let pathname: string;
+    try {
+      pathname = normalizeUrlPath(pageUrl);
+    } catch {
+      return undefined;
     }
-
-    // Use page title as filename, fallback to URL segment
-    const filename = page.title
-      ? this.sanitize(page.title)
-      : this.sanitize(
-          new URL(page.url).pathname.replace(/\/$/, '').split('/').pop() || 'untitled'
+    return mappings.find((m) => {
+      if (!m.url) return false;
+      try {
+        const mPath = normalizeUrlPath(m.url);
+        return (
+          mPath === pathname ||
+          pageUrl === m.url ||
+          pageUrl.endsWith(m.url) ||
+          pathname.endsWith(mPath)
         );
+      } catch {
+        return pageUrl.endsWith(m.url);
+      }
+    });
+  }
 
-    let candidate = dir ? `${dir}/${filename}.md` : `${filename}.md`;
+  /** 在 usedPaths 中保证唯一，冲突时追加 -2、-3… */
+  private uniquePath(desired: string, usedPaths: Set<string>): string {
+    const normalized = desired.split(path.sep).join('/');
+    if (!usedPaths.has(normalized)) {
+      usedPaths.add(normalized);
+      return normalized;
+    }
+    const ext = path.posix.extname(normalized) || '.md';
+    const base = normalized.slice(0, normalized.length - ext.length);
     let counter = 2;
+    let candidate = `${base}-${counter}${ext}`;
     while (usedPaths.has(candidate)) {
-      candidate = dir
-        ? `${dir}/${filename}-${counter}.md`
-        : `${filename}-${counter}.md`;
-      counter++;
+      counter += 1;
+      candidate = `${base}-${counter}${ext}`;
     }
     usedPaths.add(candidate);
-    return path.join(outputDir, candidate);
+    return candidate;
   }
 
-  /** Convert absolute output file path to posix relative path from output dir */
-  private toRelPath(absFilePath: string, outputDir: string): string {
-    return path.relative(outputDir, absFilePath).split(path.sep).join('/');
-  }
-
-  async write(pages: ExtractedPage[], navTree: NavNode[], options: PipelineOptions): Promise<number> {
+  /**
+   * 仅为 URL 预分配输出相对路径（不依赖正文 title）。
+   * 流式流水线可在抓取前构建完整 PathMap，以便单页即可改写站内链接。
+   */
+  assignOutputPaths(
+    urls: string[],
+    navTree: NavNode[],
+    options: Pick<PipelineOptions, 'flat'>,
+  ): Map<string, string> {
     const mappings = options.flat ? [] : this.buildPathMap(navTree);
     const usedPaths = new Set<string>();
-    let count = 0;
-
-    await fs.mkdir(options.output, { recursive: true });
-
-    // First pass: resolve all output paths (needed for pathMap before rewrite)
-    const resolved: { page: ExtractedPage; absPath: string; relPath: string }[] = [];
-    for (const page of pages) {
-      const absPath = this.resolvePath(page, mappings, usedPaths, options.output);
-      const relPath = this.toRelPath(absPath, options.output);
-      resolved.push({ page, absPath, relPath });
-    }
-
-    // PathMap from actual written pages (authoritative for link rewrite)
     const pathMap = new Map<string, string>();
-    for (const item of resolved) {
+
+    for (const url of urls) {
+      const relPath = this.resolvePathForUrl(url, mappings, usedPaths, Boolean(options.flat));
       try {
-        pathMap.set(normalizeUrlPath(item.page.url), item.relPath);
+        pathMap.set(normalizeUrlPath(url), relPath);
       } catch {
         /* skip bad url */
       }
     }
+    return pathMap;
+  }
 
-    // Second pass: sanitize, rewrite links, prepend frontmatter, write
-    for (const item of resolved) {
-      let siteOrigin = 'https://localhost';
-      try {
-        siteOrigin = new URL(item.page.url).origin;
-      } catch {
-        /* default */
+  /**
+   * 根据 nav 映射或 URL 路径解析单页相对路径。
+   * 优先使用 navTree 生成的 relativePath（目录+文件名），冲突时加后缀。
+   */
+  private resolvePathForUrl(
+    pageUrl: string,
+    mappings: PathMapping[],
+    usedPaths: Set<string>,
+    flat: boolean,
+  ): string {
+    const mapping = this.findMapping(pageUrl, mappings);
+
+    if (flat) {
+      let filename: string;
+      if (mapping) {
+        filename = path.posix.basename(mapping.relativePath, '.md');
+      } else {
+        try {
+          filename = this.sanitize(
+            new URL(pageUrl).pathname.replace(/\/$/, '').split('/').pop() || 'untitled',
+          );
+        } catch {
+          filename = 'untitled';
+        }
       }
-
-      let body = sanitizeMarkdown(item.page.markdown);
-      body = rewriteLinks(body, {
-        siteOrigin,
-        currentRelPath: item.relPath,
-        pathMap,
-      });
-      if (!body.endsWith('\n')) body += '\n';
-
-      const content = buildFrontmatter(item.page) + body;
-      await fs.mkdir(path.dirname(item.absPath), { recursive: true });
-      await fs.writeFile(item.absPath, content, 'utf-8');
-      count++;
+      return this.uniquePath(`${filename}.md`, usedPaths);
     }
 
+    if (mapping) {
+      return this.uniquePath(mapping.relativePath, usedPaths);
+    }
+
+    // 未在导航中：按 URL 路径镜像
+    try {
+      const urlPath = new URL(pageUrl).pathname.replace(/\/$/, '');
+      const parts = urlPath.split('/').filter(Boolean).map((s) => this.sanitize(s));
+      if (parts.length === 0) {
+        return this.uniquePath('index.md', usedPaths);
+      }
+      const filename = parts[parts.length - 1];
+      const dir = parts.slice(0, -1).join('/');
+      const candidate = dir ? `${dir}/${filename}.md` : `${filename}.md`;
+      return this.uniquePath(candidate, usedPaths);
+    } catch {
+      return this.uniquePath('untitled.md', usedPaths);
+    }
+  }
+
+  /** 单页：sanitize + 链接改写 + frontmatter + 落盘 */
+  async writePage(
+    page: ExtractedPage,
+    relPath: string,
+    pathMap: Map<string, string>,
+    options: Pick<PipelineOptions, 'output'>,
+  ): Promise<void> {
+    let siteOrigin = 'https://localhost';
+    try {
+      siteOrigin = new URL(page.url).origin;
+    } catch {
+      /* default */
+    }
+
+    let body = sanitizeMarkdown(page.markdown);
+    body = rewriteLinks(body, {
+      siteOrigin,
+      currentRelPath: relPath,
+      pathMap,
+    });
+    if (!body.endsWith('\n')) body += '\n';
+
+    const content = buildFrontmatter(page) + body;
+    const absPath = path.join(options.output, ...relPath.split('/'));
+    await fs.mkdir(path.dirname(absPath), { recursive: true });
+    await fs.writeFile(absPath, content, 'utf-8');
+  }
+
+  /**
+   * 批量写入（兼容旧 API / 单测）。
+   * 内部先 assignOutputPaths 再逐页 writePage，路径规则与流式一致。
+   */
+  async write(pages: ExtractedPage[], navTree: NavNode[], options: PipelineOptions): Promise<number> {
+    await fs.mkdir(options.output, { recursive: true });
+    const pathMap = this.assignOutputPaths(
+      pages.map((p) => p.url),
+      navTree,
+      options,
+    );
+
+    let count = 0;
+    for (const page of pages) {
+      let key: string;
+      try {
+        key = normalizeUrlPath(page.url);
+      } catch {
+        continue;
+      }
+      const relPath = pathMap.get(key);
+      if (!relPath) continue;
+      await this.writePage(page, relPath, pathMap, options);
+      count += 1;
+    }
     return count;
   }
 }

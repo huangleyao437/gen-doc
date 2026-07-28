@@ -50,6 +50,35 @@ function toPosixRel(fromFile: string, toFile: string): string {
   return rel;
 }
 
+/**
+ * 将相对路径写成更易被预览器点击的 Markdown 目标：
+ * - 段内编码 & # ? ( ) 空格等（HTML 预览里 & 会截断 href）
+ * - 含非 ASCII 或已编码特殊字符时用 <...> 包裹（CommonMark）
+ */
+export function formatMarkdownHref(href: string): string {
+  const t = href.trim();
+  if (!t || t.startsWith('#') || /^(mailto:|javascript:|data:)/i.test(t)) return href;
+  if (/^https?:\/\//i.test(t) || t.startsWith('//')) return href;
+
+  const { base, hash } = splitHash(t);
+  const encodedBase = base
+    .split('/')
+    .map((seg) => {
+      if (seg === '' || seg === '.' || seg === '..') return seg;
+      // 只编码会破坏 Markdown/HTML 解析的 ASCII 特殊字符，中文等保留可读性
+      return seg.replace(/[%#?&() ]/g, (ch) => encodeURIComponent(ch));
+    })
+    .join('/');
+
+  const full = encodedBase + hash;
+  const needsAngle =
+    /[^\u0000-\u007F]/.test(encodedBase) ||
+    /%[0-9A-Fa-f]{2}/.test(encodedBase) ||
+    /[() ]/.test(base);
+
+  return needsAngle ? `<${full}>` : full;
+}
+
 function absUrl(pathname: string, siteOrigin: string, hash: string): string {
   return new URL(pathname, siteOrigin).href.replace(/\/$/, '') + hash;
 }
@@ -69,17 +98,23 @@ function resolvePathname(base: string, siteOrigin: string): string | null {
 
 function rewritePageHref(url: string, ctx: LinkRewriteContext): string {
   const t = url.trim();
-  if (!t || t.startsWith('#') || /^(mailto:|javascript:|data:)/i.test(t)) return url;
-  if (/^https?:\/\//i.test(t) || t.startsWith('//')) {
-    if (!sameOrigin(t, ctx.siteOrigin)) return url;
-  } else if (!t.startsWith('/')) {
-    if (/\.md(\b|#|$)/.test(t) || t.startsWith('./') || t.startsWith('../')) return url;
+  // 去掉已有的尖括号包裹再解析
+  const unwrapped = t.startsWith('<') && t.endsWith('>') ? t.slice(1, -1) : t;
+  if (!unwrapped || unwrapped.startsWith('#') || /^(mailto:|javascript:|data:)/i.test(unwrapped)) {
+    return url;
   }
-  const { base, hash } = splitHash(t);
+  if (/^https?:\/\//i.test(unwrapped) || unwrapped.startsWith('//')) {
+    if (!sameOrigin(unwrapped, ctx.siteOrigin)) return url;
+  } else if (!unwrapped.startsWith('/')) {
+    if (/\.md(\b|#|$)/.test(unwrapped) || unwrapped.startsWith('./') || unwrapped.startsWith('../')) {
+      return formatMarkdownHref(unwrapped);
+    }
+  }
+  const { base, hash } = splitHash(unwrapped);
   const pathname = resolvePathname(base || '/', ctx.siteOrigin);
   if (pathname === null) return url;
   const target = ctx.pathMap.get(pathname);
-  if (target) return toPosixRel(ctx.currentRelPath, target) + hash;
+  if (target) return formatMarkdownHref(toPosixRel(ctx.currentRelPath, target) + hash);
   return absUrl(pathname, ctx.siteOrigin, hash);
 }
 
@@ -102,12 +137,21 @@ function rewriteImageHref(url: string, ctx: LinkRewriteContext): string {
   }
 }
 
+/** 匹配 (url) 或 (<url>) 形式的链接目标 */
+const LINK_DEST = String.raw`(?:<([^>\n]+)>|([^)\s]+))`;
+
 export function rewriteLinks(markdown: string, ctx: LinkRewriteContext): string {
-  let text = markdown.replace(/!\[([^\]]*)\]\(([^)\s]+)((?:\s+"[^"]*")?)\)/g, (_full, alt: string, url: string, title: string) => {
+  const imgRe = new RegExp(String.raw`!\[([^\]]*)\]\(${LINK_DEST}((?:\s+"[^"]*")?)\)`, 'g');
+  let text = markdown.replace(imgRe, (_full, alt: string, angle: string, plain: string, title: string) => {
+    const url = angle || plain;
     return `![${alt}](${rewriteImageHref(url, ctx)}${title || ''})`;
   });
-  text = text.replace(/(^|[^!])\[([^\]]*)\]\(([^)\s]+)((?:\s+"[^"]*")?)\)/g, (_full, prefix: string, label: string, url: string, title: string) => {
-    return `${prefix}[${label}](${rewritePageHref(url, ctx)}${title || ''})`;
+
+  // lookbehind 排除图片；支持粘连 ](a)[b](c) 与 <url> 目标
+  const pageRe = new RegExp(String.raw`(?<!!)\[([^\]]*)\]\(${LINK_DEST}((?:\s+"[^"]*")?)\)`, 'g');
+  text = text.replace(pageRe, (_full, label: string, angle: string, plain: string, title: string) => {
+    const url = angle || plain;
+    return `[${label}](${rewritePageHref(url, ctx)}${title || ''})`;
   });
   return text;
 }
