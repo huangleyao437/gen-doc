@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { Pipeline, PluginRegistry } from 'gendoc-core';
 import { docusaurusPlugin } from 'gendoc-plugin-docusaurus';
+import { vitepressPlugin } from 'gendoc-plugin-vitepress';
 import type { PipelineOptions } from 'gendoc-core';
 
 const program = new Command();
@@ -26,7 +27,7 @@ program
     // Register plugins
     const registry = new PluginRegistry();
     registry.register(docusaurusPlugin);
-    // Future plugins registered here
+    registry.register(vitepressPlugin);
 
     if (options.detectOnly) {
       const { Renderer, Detector } = await import('gendoc-core');
