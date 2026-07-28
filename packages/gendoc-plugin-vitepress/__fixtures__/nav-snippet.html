@@ -20,6 +20,35 @@
               </a>
             </div>
           </div>
+          <!-- 嵌套非 link 分组（level-1 → level-2 is-link） -->
+          <div class="VPSidebarItem level-1">
+            <div class="item" role="button">
+              <p class="text">进阶</p>
+            </div>
+            <div class="items">
+              <div class="VPSidebarItem level-2 is-link">
+                <div class="item">
+                  <a class="VPLink link" href="/zh/cookbook/advanced.html">
+                    <p class="text">进阶用法</p>
+                  </a>
+                </div>
+              </div>
+              <div class="VPSidebarItem level-2">
+                <div class="item" role="button">
+                  <p class="text">更深层</p>
+                </div>
+                <div class="items">
+                  <div class="VPSidebarItem level-3 is-link">
+                    <div class="item">
+                      <a class="VPLink link" href="/zh/cookbook/deep.html">
+                        <p class="text">深层页面</p>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           <div class="VPSidebarItem level-1 is-link">
             <div class="item">
               <a class="VPLink link vp-external-link-icon" href="https://github.com/vuejs/pinia" target="_blank" rel="noreferrer">
@@ -40,6 +69,30 @@
             <div class="item">
               <a class="VPLink link" href="/zh/introduction.html">
                 <p class="text">Pinia 是什么？</p>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+    <!-- 过滤后仅剩外链 → 整组丢弃 -->
+    <div class="group">
+      <section class="VPSidebarItem level-0">
+        <div class="item" role="button">
+          <h2 class="text">外部资源</h2>
+        </div>
+        <div class="items">
+          <div class="VPSidebarItem level-1 is-link">
+            <div class="item">
+              <a class="VPLink link vp-external-link-icon" href="https://vuejs.org/" target="_blank" rel="noreferrer">
+                <p class="text">Vue</p>
+              </a>
+            </div>
+          </div>
+          <div class="VPSidebarItem level-1 is-link">
+            <div class="item">
+              <a class="VPLink link" href="mailto:team@example.com">
+                <p class="text">联系</p>
               </a>
             </div>
           </div>

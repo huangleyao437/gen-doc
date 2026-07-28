@@ -16,6 +16,20 @@ describe('matchPathGlob', () => {
   it('normalizes trailing slashes on pathname side', () => {
     expect(matchPathGlob('/zh/cookbook', '/zh/cookbook/**')).toBe(true);
   });
+
+  it('does not apply prefix fallback for middle ** or file-extension patterns', () => {
+    // /**/*.html 不是「以 /** 结尾」，不得把 /docs 整棵树都放宽进来
+    expect(matchPathGlob('/docs/readme.md', '/docs/**/*.html')).toBe(false);
+    expect(matchPathGlob('/docs/a.html', '/docs/**/*.html')).toBe(true);
+    // 中间 **（/a/**/b）不得匹配仅前缀路径
+    expect(matchPathGlob('/a/x', '/a/**/b')).toBe(false);
+    expect(matchPathGlob('/a/x/b', '/a/**/b')).toBe(true);
+  });
+
+  it('still matches directory itself for trailing /** patterns', () => {
+    expect(matchPathGlob('/zh/cookbook', '/zh/cookbook/**')).toBe(true);
+    expect(matchPathGlob('/zh/cookbook/', '/zh/cookbook/**')).toBe(true);
+  });
 });
 
 describe('filterUrlsByPath', () => {

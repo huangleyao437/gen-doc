@@ -4,7 +4,21 @@
     "path": "",
     "children": [
       { "title": "手册目录", "path": "/zh/cookbook/" },
-      { "title": "在组件外使用 Store", "path": "/zh/cookbook/composables.html" }
+      { "title": "在组件外使用 Store", "path": "/zh/cookbook/composables.html" },
+      {
+        "title": "进阶",
+        "path": "",
+        "children": [
+          { "title": "进阶用法", "path": "/zh/cookbook/advanced.html" },
+          {
+            "title": "更深层",
+            "path": "",
+            "children": [
+              { "title": "深层页面", "path": "/zh/cookbook/deep.html" }
+            ]
+          }
+        ]
+      }
     ]
   },
   {

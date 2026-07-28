@@ -79,6 +79,64 @@ export const vitepressPlugin: FrameworkPlugin = {
       return raw.replace(/\s+/g, ' ').trim();
     }
 
+    /**
+     * 递归解析单个 VPSidebarItem：
+     * - is-link：叶子链接（跳过外链）
+     * - 非 link：分组，递归其直接子 .items > .VPSidebarItem
+     * - 过滤后无 path 且无 children 的分组丢弃
+     */
+    function parseSidebarItem($item: ReturnType<typeof $>): NavNode | null {
+      const isLink = $item.hasClass('is-link');
+      const $a = $item.find('> .item a.VPLink').first();
+
+      let title = '';
+      let path = '';
+
+      if ($a.length > 0) {
+        path = ($a.attr('href') || '').trim();
+        title =
+          normalizeText($a.find('.text').first().text()) ||
+          normalizeText($a.text());
+      } else {
+        title =
+          normalizeText(
+            $item.find('> .item h2.text, > .item .text, > .item p.text').first().text(),
+          ) ||
+          normalizeText($item.children('.item').find('.text').first().text());
+      }
+
+      // 直接子 items 中的 VPSidebarItem（含嵌套分组与链接）
+      const children: NavNode[] = [];
+      $item.children('.items').children('.VPSidebarItem').each((_, childEl) => {
+        const child = parseSidebarItem($(childEl));
+        if (child) children.push(child);
+      });
+
+      if (isLink || path) {
+        if (!path || path === '#') {
+          // 无有效 href 时若有子节点则当分组处理，否则丢弃
+          if (children.length === 0) return null;
+          if (!title) return null;
+          return { title, path: '', children };
+        }
+        if (isExternalLink(path)) return null;
+        if (!title) return null;
+        return {
+          title,
+          path,
+          children: children.length > 0 ? children : undefined,
+        };
+      }
+
+      // 纯分组：过滤后无 children 则丢弃（含外链滤空的 level-0）
+      if (children.length === 0) return null;
+      if (!title) {
+        // 无标题时不造空壳节点，由调用方决定是否展开
+        return { title: '', path: '', children };
+      }
+      return { title, path: '', children };
+    }
+
     function parseItems($container: ReturnType<typeof $>): NavNode[] {
       const nodes: NavNode[] = [];
 
@@ -87,45 +145,15 @@ export const vitepressPlugin: FrameworkPlugin = {
       const $scope = $groups.length > 0 ? $groups : $container.find('.VPSidebarItem.level-0');
 
       $scope.each((_, section) => {
-        const $section = $(section);
-        const title =
-          normalizeText(
-            $section.find('> .item h2.text, > .item .text').first().text(),
-          ) ||
-          normalizeText($section.children('.item').find('.text').first().text());
-
-        const children: NavNode[] = [];
-        // 仅取分组下直接 items 中的链接项，避免嵌套重复
-        const $linkItems = $section.children('.items').find('> .VPSidebarItem.is-link');
-        const $links =
-          $linkItems.length > 0
-            ? $linkItems
-            : $section.find('> .items .VPSidebarItem.level-1.is-link, > .items .VPSidebarItem.is-link');
-
-        $links.each((__, linkItem) => {
-          const $item = $(linkItem);
-          const $a = $item.find('a.VPLink').first();
-          if ($a.length === 0) return;
-          const href = ($a.attr('href') || '').trim();
-          const linkTitle =
-            normalizeText($a.find('.text').first().text()) ||
-            normalizeText($a.text());
-          if (!linkTitle) return;
-          if (!href || href === '#') return;
-          if (isExternalLink(href)) return;
-          children.push({ title: linkTitle, path: href });
-        });
-
-        if (!title && children.length === 0) return;
-        if (!title) {
-          nodes.push(...children);
+        const node = parseSidebarItem($(section));
+        if (!node) return;
+        if (!node.title && node.children?.length) {
+          nodes.push(...node.children);
           return;
         }
-        nodes.push({
-          title,
-          path: '',
-          children: children.length > 0 ? children : undefined,
-        });
+        // 无 path 且无 children 已在 parseSidebarItem 丢弃；此处再保险一次
+        if (!node.path && (!node.children || node.children.length === 0)) return;
+        nodes.push(node);
       });
 
       // 若没有 level-0 分组，退化为平铺所有 is-link

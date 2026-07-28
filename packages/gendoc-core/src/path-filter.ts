@@ -43,10 +43,11 @@ export function matchPathGlob(pathname: string, pattern: string): boolean {
   const re = new RegExp(out);
   if (re.test(path)) return true;
 
-  // /zh/cookbook/** 对 normalize 后的 /zh/cookbook 再试：把末尾 /** 视为可选后缀
-  if (pattern.includes('**')) {
-    const prefix = pattern.replace(/\*\*.*$/, '').replace(/\/$/, '');
-    if (prefix && (path === normalizeUrlPath(prefix) || path.startsWith(normalizeUrlPath(prefix) + '/'))) {
+  // 仅当 pattern 以 /** 结尾时，允许匹配前缀目录本身
+  // 例：/zh/cookbook/** → /zh/cookbook；不对中间 **（/a/**/b）或 /**/*.html 做放宽
+  if (/\/\*\*$/.test(pat)) {
+    const prefix = pat.replace(/\/\*\*$/, '').replace(/\/$/, '');
+    if (prefix && path === normalizeUrlPath(prefix)) {
       return true;
     }
   }
