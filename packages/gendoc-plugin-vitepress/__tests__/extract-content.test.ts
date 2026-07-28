@@ -20,7 +20,8 @@ describe('VitePressPlugin.extractContent', () => {
     expect(page.markdown).not.toMatch(/header-anchor|VPDocFooter|prev next|Copy Code/i);
     expect(page.markdown).toMatch(/>\s*\*\*WARNING\*\*/i);
     expect(page.markdown).toContain('不要直接返回 DOM 引用');
-    expect(page.markdown).toMatch(/```ts[\s\S]*const x = 1[\s\S]*const y = 2[\s\S]*```/);
+    // 语言与多行；行间 HTML 空白不应膨胀成多余空行，空 span.line 才保留空行
+    expect(page.markdown).toMatch(/```ts\nconst x = 1\nconst y = 2\n\nconst z = 3\n```/);
     expect(page.frontmatter?.description).toBe('Test VitePress page');
   });
 

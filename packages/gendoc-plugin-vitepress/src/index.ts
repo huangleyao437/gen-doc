@@ -205,10 +205,18 @@ export const vitepressPlugin: FrameworkPlugin = {
         $code.attr('class', `${codeClass} language-${langMatch[1]}`.trim());
       }
 
-      $code.find('span.line, span.token-line').each((__, span) => {
-        $(span).before('\n');
-      });
-      const text = $code.text().replace(/^\n+/, '');
+      // Shiki 用 span.line 分行；真实 HTML 行间常已有空白换行，
+      // 若再 before('\n') 再取 text 会得到空行，故直接按行节点 join。
+      const $lines = $code.find('span.line, span.token-line');
+      let text: string;
+      if ($lines.length > 0) {
+        text = $lines
+          .map((__, span) => $(span).text())
+          .get()
+          .join('\n');
+      } else {
+        text = $code.text();
+      }
       $code.empty().text(text);
     });
 
