@@ -1,5 +1,6 @@
 node_modules/
 dist/
+scripts/
 *.tsbuildinfo
 .gendoc-state.json
 gendoc-errors.log
