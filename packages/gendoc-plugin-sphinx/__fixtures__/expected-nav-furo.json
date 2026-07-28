@@ -1,0 +1,15 @@
+[
+  {
+    "title": "快速开始",
+    "path": "",
+    "children": [
+      { "title": "概述", "path": "index.html" },
+      { "title": "快速开始", "path": "quickstart.html" },
+      {
+        "title": "指南",
+        "path": "guide/index.html",
+        "children": [{ "title": "Agent", "path": "guide/agent.html" }]
+      }
+    ]
+  }
+]

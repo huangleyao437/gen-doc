@@ -1,0 +1,16 @@
+[
+  {
+    "title": "Introduction",
+    "path": "intro.html"
+  },
+  {
+    "title": "Content",
+    "path": "content/index.html",
+    "children": [
+      {
+        "title": "MyST",
+        "path": "content/myst.html"
+      }
+    ]
+  }
+]
