@@ -263,7 +263,8 @@ function mapMystnb($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
     const $wrap = $('<div class="gendoc-mystnb-out"></div>');
     if (cleaned) {
       const $pre = $('<pre></pre>');
-      const $code = $('<code></code>').attr('class', 'language-text').text(cleaned);
+      // 不使用 language-text：部分预览器对 ```text 不显示内容
+      const $code = $('<code></code>').text(cleaned);
       $pre.append($code);
       $wrap.append($pre);
     }

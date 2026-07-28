@@ -95,4 +95,19 @@ describe('SphinxPlugin.extractContent', () => {
     // 禁止破碎模式：单独成行的竖线
     expect(page.markdown).not.toMatch(/^\|\s*$/m);
   });
+
+  it('highlight-text ASCII 树：不使用 ```text 语言标记，内容完整', async () => {
+    const html = fs.readFileSync(path.join(fixtureDir, 'docutils-table-snippet.html'), 'utf-8');
+    const page = await sphinxPlugin.extractContent(
+      makePage(html, 'https://java.agentscope.io/v2/zh/docs/building-blocks/model.html'),
+    );
+
+    expect(page.markdown).toContain('CredentialBase/');
+    expect(page.markdown).toContain('ChatModelBase/');
+    expect(page.markdown).toContain('OpenAIChatModel');
+    // 禁止 language-text → ```text（部分预览器不显示）
+    expect(page.markdown).not.toMatch(/```text\b/);
+    // 应为无语言 fence 包裹
+    expect(page.markdown).toMatch(/```\nCredentialBase\//);
+  });
 });

@@ -11,6 +11,18 @@ const turndown = new TurndownService({
 });
 turndown.use(gfm);
 
+/** Sphinx/Pygments 的纯文本类语言：不写 language-*，避免 ```text 预览异常 */
+function isPlaintextHighlightLang(lang: string): boolean {
+  return (
+    lang === 'text' ||
+    lang === 'default' ||
+    lang === 'none' ||
+    lang === 'plaintext' ||
+    lang === 'raw' ||
+    lang === 'output'
+  );
+}
+
 export const sphinxPlugin: FrameworkPlugin = {
   name: 'sphinx',
   version: '0.1.0',
@@ -300,7 +312,15 @@ export const sphinxPlugin: FrameworkPlugin = {
         classPool.match(/highlight-(\w[\w+-]*)/) || classPool.match(/language-(\S+)/);
       if (langMatch) {
         const raw = langMatch[1]!.toLowerCase();
-        lang = raw.startsWith('ipython') ? 'python' : raw === 'default' ? 'text' : raw;
+        // 纯文本/ASCII 树图：不用 language-text（部分预览器对 ```text 不渲染或隐藏内容）
+        // 省略语言标记 → turndown 输出 ``` 无语言 fence，兼容性更好
+        if (raw.startsWith('ipython')) {
+          lang = 'python';
+        } else if (isPlaintextHighlightLang(raw)) {
+          lang = undefined;
+        } else {
+          lang = raw;
+        }
       }
 
       // 行级 span 压平为纯文本
