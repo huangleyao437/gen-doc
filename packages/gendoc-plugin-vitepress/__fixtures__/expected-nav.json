@@ -1,0 +1,17 @@
+[
+  {
+    "title": "手册",
+    "path": "",
+    "children": [
+      { "title": "手册目录", "path": "/zh/cookbook/" },
+      { "title": "在组件外使用 Store", "path": "/zh/cookbook/composables.html" }
+    ]
+  },
+  {
+    "title": "介绍",
+    "path": "",
+    "children": [
+      { "title": "Pinia 是什么？", "path": "/zh/introduction.html" }
+    ]
+  }
+]
