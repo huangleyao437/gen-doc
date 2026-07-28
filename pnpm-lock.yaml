@@ -19,6 +19,9 @@ importers:
       gendoc-plugin-docusaurus:
         specifier: workspace:*
         version: link:../gendoc-plugin-docusaurus
+      gendoc-plugin-sphinx:
+        specifier: workspace:*
+        version: link:../gendoc-plugin-sphinx
       gendoc-plugin-vitepress:
         specifier: workspace:*
         version: link:../gendoc-plugin-vitepress

@@ -14,6 +14,7 @@
   "dependencies": {
     "gendoc-core": "workspace:*",
     "gendoc-plugin-docusaurus": "workspace:*",
+    "gendoc-plugin-sphinx": "workspace:*",
     "gendoc-plugin-vitepress": "workspace:*",
     "commander": "^12.1.0"
   },

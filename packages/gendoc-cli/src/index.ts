@@ -2,6 +2,7 @@
 import { Command } from 'commander';
 import { Pipeline, PluginRegistry } from 'gendoc-core';
 import { docusaurusPlugin } from 'gendoc-plugin-docusaurus';
+import { sphinxPlugin } from 'gendoc-plugin-sphinx';
 import { vitepressPlugin } from 'gendoc-plugin-vitepress';
 import type { PipelineOptions } from 'gendoc-core';
 
@@ -28,6 +29,7 @@ program
     const registry = new PluginRegistry();
     registry.register(docusaurusPlugin);
     registry.register(vitepressPlugin);
+    registry.register(sphinxPlugin);
 
     if (options.detectOnly) {
       const { Renderer, Detector } = await import('gendoc-core');
