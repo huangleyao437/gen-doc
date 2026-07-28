@@ -149,9 +149,79 @@ export const vitepressPlugin: FrameworkPlugin = {
   },
 
   async extractContent(page: PageContext): Promise<ExtractedPage> {
-    void cleanVitePressContent;
-    void mapVitePressComponents;
-    void turndown;
-    return { url: page.url, title: '', markdown: '', frontmatter: {} };
+    const $ = page.$;
+
+    const selectors = [
+      'main .vp-doc',
+      '.VPDoc .vp-doc',
+      '.vp-doc',
+      'main.main',
+      '#VPContent',
+      'main',
+    ];
+
+    let $content: ReturnType<typeof $> | null = null;
+    for (const sel of selectors) {
+      const match = $(sel);
+      if (match.length > 0 && match.text().trim().length > 50) {
+        $content = match.first();
+        break;
+      }
+    }
+    // 短页面（如仅 code-group 测试）放宽长度阈值
+    if (!$content) {
+      for (const sel of selectors) {
+        const match = $(sel);
+        if (match.length > 0 && match.text().trim().length > 0) {
+          $content = match.first();
+          break;
+        }
+      }
+    }
+    if (!$content) {
+      $content = $('body');
+    }
+
+    cleanVitePressContent($, $content);
+    mapVitePressComponents($, $content);
+
+    const title =
+      $content.find('h1').first().text().trim() ||
+      $('title').text().replace(/\s*\|.*$/, '').trim() ||
+      '';
+
+    // Shiki / 代码块预处理：语言 class 落到 code，行节点注入换行后压平为纯文本
+    $content.find('pre').each((_, pre) => {
+      const $pre = $(pre);
+      const $code = $pre.find('code').first();
+      if ($code.length === 0) return;
+
+      const preClass = $pre.attr('class') || '';
+      const codeClass = $code.attr('class') || '';
+      const langMatch =
+        preClass.match(/language-(\S+)/) ||
+        ($pre.closest('[class*="language-"]').attr('class') || '').match(/language-(\S+)/);
+      if (langMatch && !codeClass.includes('language-')) {
+        $code.attr('class', `${codeClass} language-${langMatch[1]}`.trim());
+      }
+
+      $code.find('span.line, span.token-line').each((__, span) => {
+        $(span).before('\n');
+      });
+      const text = $code.text().replace(/^\n+/, '');
+      $code.empty().text(text);
+    });
+
+    // 去掉 language 容器上残留 copy 按钮（若 clean 未覆盖）
+    $content.find('button.copy, span.lang').remove();
+
+    const html = $content.html() || '';
+    const markdown = turndown.turndown(html);
+
+    const description = $('meta[name="description"]').attr('content') || '';
+    const frontmatter: Record<string, unknown> = {};
+    if (description) frontmatter.description = description;
+
+    return { url: page.url, title, markdown, frontmatter };
   },
 };
