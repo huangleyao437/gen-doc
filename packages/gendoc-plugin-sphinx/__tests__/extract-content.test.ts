@@ -76,4 +76,23 @@ describe('SphinxPlugin.extractContent', () => {
     // thebe / script 不应泄漏到 Markdown
     expect(page.markdown).not.toMatch(/requestKernel|kernelName|thebe-config/i);
   });
+
+  it('docutils 表格：展开 td/th 内单层 p 后输出合法 GFM 表', async () => {
+    const html = fs.readFileSync(path.join(fixtureDir, 'docutils-table-snippet.html'), 'utf-8');
+    const page = await sphinxPlugin.extractContent(
+      makePage(html, 'https://java.agentscope.io/v2/zh/docs/change-log.html'),
+    );
+
+    // 表头与分隔行应各占一行（同行多 cell）
+    expect(page.markdown).toMatch(/\|[^\n]*2\.0 中已删除[^\n]*\|[^\n]*替代方案[^\n]*\|/);
+    expect(page.markdown).toMatch(/\|\s*---+\s*\|\s*---+\s*\|/);
+    // 数据行：两列在同一行
+    expect(page.markdown).toMatch(
+      /\|[^\n]*\.memory\(Memory\)[^\n]*\|[^\n]*\.stateStore\(AgentStateStore\)[^\n]*\|/,
+    );
+    expect(page.markdown).toContain('.statePersistence(StatePersistence)');
+    expect(page.markdown).toContain('不再需要，模型层原生支持');
+    // 禁止破碎模式：单独成行的竖线
+    expect(page.markdown).not.toMatch(/^\|\s*$/m);
+  });
 });

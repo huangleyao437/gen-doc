@@ -7,10 +7,38 @@ export function mapSphinxComponents($: CheerioAPI, $content: ReturnType<CheerioA
   // 隐藏 tab 面板在映射前解除 hidden
   $content.find('.sd-tab-content[hidden], [role="tabpanel"][hidden]').removeAttr('hidden');
 
+  // docutils 表格单元格内单层 <p> 会破坏 GFM table 行，须先展开
+  mapDocutilsTables($, $content);
   mapAdmonitions($, $content);
   mapSdCards($, $content);
   mapSdTabs($, $content);
   mapMystnb($, $content);
+}
+
+/**
+ * Sphinx docutils 表格：每个 th/td 常包一层 <p>，turndown+gfm 会把 <p> 当块级元素
+ * 插入换行，导致 `| cell |` 拆成多行碎表。若单元格「恰好一个元素子节点且为 p」，
+ * 则展开该 p 的内容。多 p / 混有其它块级结构时不改动。
+ */
+function mapDocutilsTables($: CheerioAPI, $content: ReturnType<CheerioAPI>): void {
+  $content.find('table').each((_, table) => {
+    const $table = $(table);
+    $table.find('th, td').each((__, cell) => {
+      const $cell = $(cell);
+      // 只看元素子节点，忽略空白文本
+      const elementChildren = $cell
+        .contents()
+        .toArray()
+        .filter((node) => node.type === 'tag');
+      if (elementChildren.length !== 1) return;
+      const only = elementChildren[0];
+      if (!only || only.type !== 'tag') return;
+      const tag = (only as { name?: string }).name?.toLowerCase() || '';
+      if (tag !== 'p') return;
+      const $p = $(only);
+      $p.replaceWith($p.contents());
+    });
+  });
 }
 
 /**
