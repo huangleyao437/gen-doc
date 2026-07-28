@@ -18,6 +18,8 @@ describe('VitePressPlugin.extractContent', () => {
     expect(page.title).toMatch(/手册/);
     expect(page.markdown).toContain('# 手册');
     expect(page.markdown).not.toMatch(/header-anchor|VPDocFooter|prev next|Copy Code/i);
+    // 正文内 RuleKit 赞助卡 / 翻译状态条应剔除，避免破碎 Markdown 链接
+    expect(page.markdown).not.toMatch(/rulekit\.dev|RuleKit|Vibe 代码|该翻译已同步/i);
     expect(page.markdown).toMatch(/>\s*\*\*WARNING\*\*/i);
     expect(page.markdown).toContain('不要直接返回 DOM 引用');
     // 语言与多行；行间 HTML 空白不应膨胀成多余空行，空 span.line 才保留空行
